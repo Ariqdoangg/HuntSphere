@@ -1,358 +1,321 @@
-# 🌐 HuntSphere - GPS-Based Treasure Hunt Platform
-
 <div align="center">
 
-![HuntSphere](https://img.shields.io/badge/HuntSphere-GPS%20Treasure%20Hunt-0f172a?style=for-the-badge&labelColor=0f172a&color=06b6d4)
+# 🎯 HuntSphere
 
-**A real-time, location-based team-building application where participants compete in GPS-tracked treasure hunts managed by a live facilitator.**
+**GPS-Based Treasure Hunt Platform**
 
-Create hunts. Drop checkpoints. Track teams in real-time.
+<p>
+  <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" />
+  <img src="https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img src="https://img.shields.io/badge/Google_Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+</p>
 
-[Features](#-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [Screenshots](#-screenshots) • [Architecture](#-architecture)
+A **GPS-powered digital explorace platform** that enables facilitators to create, manage, and monitor treasure hunt activities in real-time with automatic team formation, geofencing checkpoints, and live leaderboards.
+
+[Getting Started](#-getting-started) · [Features](#-key-features) · [Tech Stack](#%EF%B8%8F-tech-stack) · [Screenshots](#-screenshots)
 
 </div>
 
 ---
 
-## 🎯 About
+## 📸 Screenshots
 
-HuntSphere digitizes and automates the traditional "explorace" / treasure hunt experience. Facilitators create GPS-based activities with checkpoints and tasks, while participants compete in teams — all tracked in real-time with live scoring.
+<div align="center">
 
-### The Problem
-- Traditional treasure hunts rely on **manual registration & scoring**
-- Existing apps are **limited to specific program types**
-- No **real-time tracking** of team progress
-- Complex setup and coordination
+### 🧑‍💼 Facilitator Side
 
-### The Solution
-HuntSphere automates the entire flow — from activity creation to team grouping to live scoring. Facilitators manage everything from a dashboard, while participants navigate checkpoints using GPS on their phones.
+<table>
+  <tr>
+    <td align="center"><b>Dashboard</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/facilitator_dashboard.jpg" width="300" /></td>
+  </tr>
+</table>
 
----
+### 🎮 Participant Side
 
-## ✨ Features
+<table>
+  <tr>
+    <td align="center"><b>Join Activity</b></td>
+    <td align="center"><b>Waiting Lobby</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/participant_join.jpg" width="300" /></td>
+    <td><img src="screenshots/participant_lobby.jpg" width="300" /></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><b>Game Map with GPS Tracking</b></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="screenshots/game_map.jpg" width="300" /></td>
+  </tr>
+</table>
 
-### 🎮 Dual Role System
-
-**Facilitator (Admin)**
-- Create and configure activities with custom rules
-- Drop GPS checkpoints on an interactive map
-- Set radius thresholds for geofence triggers
-- Assign multiple task types per checkpoint
-- Review and approve photo submissions in real-time
-- Monitor all teams via live dashboard
-
-**Participant (Player)**
-- Join activities using a unique code
-- Live selfie capture for identity verification
-- Navigate to checkpoints using GPS guidance
-- Complete tasks: Quizzes, QR Scans, Photo Challenges
-- View real-time leaderboard and team standings
-
-### 📍 GPS Geofencing
-- Real-time location tracking using Haversine formula
-- Automatic checkpoint detection when within radius
-- Haptic feedback on checkpoint arrival
-- Tasks unlock only when physically at the location
-
-### 👥 Smart Team Grouping
-- Automatic team shuffling when facilitator starts the race
-- Groups of 4 (adjusts for remainders — no player left alone)
-- Team reveal screen showing teammates' selfies
-- Powered by Supabase Edge Functions
-
-### 📸 Multiple Task Types
-| Type | Validation |
-|------|-----------|
-| 📸 Photo Task | Manual (Facilitator reviews) |
-| 📍 GPS Task | Automatic (Location verified) |
-| 📱 QR Code | Automatic (String matching) |
-| ❓ Quiz | Automatic (Database validated) |
-
-### 🏆 Real-time Leaderboard
-- Live scoring via Supabase Realtime subscriptions
-- Points for checkpoint arrivals + task completions
-- Instant updates across all connected devices
-- Win logic: Fastest completion or highest score
-
-### 🎨 Dark Gaming Aesthetic
-- Navy dark theme with cyan and neon pink accents
-- Glow effects and gradient buttons
-- Futuristic UI designed for engagement
-- Smooth animations and transitions
+</div>
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
-### Mobile App
-| Technology | Purpose |
-|-----------|---------|
-| **Flutter** | Cross-platform mobile framework |
-| **Dart** | Programming language |
-| **BLoC Pattern** | State management |
-| **Geolocator** | GPS & location services |
-| **Google Maps** | Interactive map display |
-
-### Backend
-| Technology | Purpose |
-|-----------|---------|
-| **Supabase** | Backend-as-a-Service |
-| **PostgreSQL** | Database with RLS |
-| **Supabase Realtime** | Live subscriptions & broadcasts |
-| **Supabase Edge Functions** | Serverless logic (Deno) |
-| **Supabase Storage** | File storage (selfies & submissions) |
+| Layer | Technology | Role |
+| :--- | :--- | :--- |
+| **Mobile App** | Flutter (Dart) | Cross-platform app for Facilitators & Participants |
+| **Backend** | Supabase (PostgreSQL) | Real-time database, authentication & storage |
+| **Maps** | Google Maps API | GPS tracking, geofencing & checkpoint markers |
+| **Auth** | Supabase Auth | Email/password authentication with role management |
+| **Real-time** | Supabase Realtime | Live leaderboard updates & lobby sync |
 
 ### Architecture
+
 ```
-├── Flutter App (Cross-platform iOS/Android)
-│   ├── BLoC State Management
-│   ├── Geolocator (GPS Tracking)
-│   ├── Google Maps Integration
-│   └── Camera & QR Scanner
-├── Supabase Backend
-│   ├── PostgreSQL (Database + RLS Policies)
-│   ├── Realtime (Live Leaderboard & Updates)
-│   ├── Edge Functions (Team Grouping Logic)
-│   └── Storage (Selfies & Photo Submissions)
+┌──────────────────────┐
+│   Flutter Mobile App  │
+│                       │
+│  ┌─────────────────┐  │
+│  │  Facilitator    │  │     ┌──────────────────────┐
+│  │  • Create Game  │  │────▶│                      │
+│  │  • Monitor Live │  │     │   Supabase Backend   │
+│  │  • Review Tasks │  │◀────│                      │
+│  └─────────────────┘  │     │  • PostgreSQL DB     │
+│                       │     │  • Auth (Sanctum)    │
+│  ┌─────────────────┐  │     │  • Realtime Engine   │
+│  │  Participant    │  │────▶│  • Storage (Photos)  │
+│  │  • Join Code    │  │     │                      │
+│  │  • GPS Navigate │  │◀────│                      │
+│  │  • Answer Tasks │  │     └──────────┬───────────┘
+│  └─────────────────┘  │                │
+└──────────────────────┘     ┌──────────▼───────────┐
+                              │   Google Maps API    │
+                              │  • GPS Tracking      │
+                              │  • Geofencing        │
+                              │  • Map Markers       │
+                              └──────────────────────┘
 ```
 
 ---
 
-## 📦 Installation
+## ✨ Key Features
+
+### 🧑‍💼 Facilitator
+- **Create Activity** — Set name, duration, and get auto-generated join code
+- **Setup Checkpoints** — Pin GPS locations on map with custom radius & points
+- **Add Tasks** — Quiz (auto-graded), Photo (manual review), QR scan per checkpoint
+- **Lobby Management** — Real-time participant list with live count
+- **Auto Team Formation** — System automatically divides participants into teams (3-5 per team)
+- **Live Monitoring** — Real-time leaderboard & progress tracking
+- **Photo Review** — Approve/reject photo submissions from participants
+
+### 🎮 Participant
+- **Quick Join** — Enter 6-character join code to enter activity
+- **Waiting Lobby** — See other participants, wait for facilitator to start
+- **Team Reveal** — Auto-assigned team with emoji & team name
+- **GPS Navigation** — Google Maps with checkpoint markers & distance tracking
+- **Geofencing** — Checkpoints auto-unlock when within radius (50m default)
+- **Complete Tasks** — Answer quiz, take photos, scan QR codes
+- **Live Leaderboard** — Real-time ranking with team highlighting
+- **Progress Tracker** — Visual progress of completed checkpoints
+
+### 🔐 Admin Verification
+- **Manual Verification** — Admin verifies and approves new facilitators via Supabase backend
+- **Role-Based Access** — Only verified facilitators can create and manage activities
+- **Secure Registration** — Users register through Supabase Auth, admin grants facilitator access
+
+---
+
+## 🗄️ Database Schema
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  activities  │     │ checkpoints  │     │    tasks     │
+├──────────────┤     ├──────────────┤     ├──────────────┤
+│ id           │◄────│ activity_id  │◄────│ checkpoint_id│
+│ name         │     │ name         │     │ title        │
+│ join_code    │     │ latitude     │     │ type         │
+│ status       │     │ longitude    │     │ points       │
+│ duration_min │     │ radius_meters│     │ question     │
+│ created_by   │     │ arrival_pts  │     │ answer       │
+└──────────────┘     │ sequence     │     └──────────────┘
+                     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│    teams     │     │ participants │     │team_progress │
+├──────────────┤     ├──────────────┤     ├──────────────┤
+│ id           │     │ id           │     │ team_id      │
+│ activity_id  │     │ team_id      │     │ checkpoint_id│
+│ team_name    │     │ name         │     │ arrived_at   │
+│ emoji        │     │ user_id      │     │ status       │
+└──────────────┘     └──────────────┘     └──────────────┘
+
+┌──────────────┐     ┌──────────────┐
+│ facilitators │     │task_submissions│
+├──────────────┤     ├──────────────┤
+│ id           │     │ team_id      │
+│ user_id      │     │ task_id      │
+│ name         │     │ answer       │
+│ email        │     │ is_correct   │
+│ organization │     │ points_earned│
+└──────────────┘     └──────────────┘
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK 3.x+
-- Dart SDK
+
+- Flutter SDK 3.x
 - Android Studio / VS Code
-- Supabase account
+- Google Maps API Key
+- Supabase Account (Free tier)
 
-### Setup
+### 1. Clone the repo
 
-1. **Clone the repository**
 ```bash
 git clone https://github.com/Ariqdoangg/HuntSphere.git
 cd HuntSphere
 ```
 
-2. **Install dependencies**
+### 2. Install dependencies
+
 ```bash
 flutter pub get
 ```
 
-3. **Configure Supabase**
+### 3. Configure Supabase
 
-Create a Supabase project at [supabase.com](https://supabase.com), then update credentials:
+Create `lib/core/constants/supabase_constants.dart`:
 
 ```dart
-// lib/core/utils/constants.dart
-static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-static const String supabaseAnonKey = 'YOUR_ANON_KEY';
+class SupabaseConstants {
+  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
+  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+}
 ```
 
-4. **Run database migrations**
+### 4. Configure Google Maps
 
-In Supabase SQL Editor, run the migration files from `supabase/migrations/` in order.
+Add your API key to:
 
-5. **Create storage buckets**
+**Android:** `android/app/src/main/AndroidManifest.xml`
+```xml
+<meta-data
+    android:name="com.google.android.geo.API_KEY"
+    android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
+```
 
-Create two buckets in Supabase Storage:
-- `selfies` — For participant registration photos
-- `submissions` — For task-related uploads
+### 5. Run the app
 
-6. **Run the app**
 ```bash
 flutter run
 ```
 
 ---
 
-## 📸 Screenshots
-
-### Welcome & Join
-> Dark-themed onboarding with activity code entry
-<!-- ![Welcome](screenshots/welcome.png) -->
-
-### Facilitator Dashboard
-> Create activities, drop checkpoints, manage teams
-<!-- ![Facilitator](screenshots/facilitator.png) -->
-
-### Live Map & GPS Tracking
-> Real-time checkpoint navigation with geofencing
-<!-- ![Map](screenshots/map.png) -->
-
-### Task Completion
-> Photo, Quiz, QR, and GPS task interfaces
-<!-- ![Tasks](screenshots/tasks.png) -->
-
-### Leaderboard
-> Real-time team rankings and scoring
-<!-- ![Leaderboard](screenshots/leaderboard.png) -->
-
-*Replace comments above with actual screenshot images*
-
----
-
-## 🗄 Database Schema
+## 📁 Project Structure
 
 ```
-activities
-├── id, facilitator_id, name
-├── join_code, status, duration
-├── start_time, end_time
-└── settings, timestamps
-
-checkpoints
-├── id, activity_id, name
-├── latitude, longitude, radius
-├── arrival_points, order_index
-└── clue, description, timestamps
-
-tasks
-├── id, checkpoint_id, type
-├── title, description, points
-├── correct_answer, options
-└── timestamps
-
-teams
-├── id, activity_id, name
-├── total_points, finish_time
-└── status, timestamps
-
-participants
-├── id, user_id, activity_id
-├── team_id, name, selfie_url
-└── status, timestamps
-
-submissions
-├── id, task_id, team_id
-├── participant_id, content
-├── media_url, status, points
-└── reviewed_by, timestamps
-```
-
----
-
-## 🏗 Project Structure
-
-```
-huntsphere/
+HuntSphere/
 ├── lib/
-│   ├── main.dart
-│   ├── app/
-│   │   ├── app.dart                  # App configuration
-│   │   ├── theme.dart                # Dark gaming theme
-│   │   ├── routes.dart               # Navigation routes
-│   │   └── bloc_observer.dart        # BLoC debugging
 │   ├── core/
-│   │   ├── models/
-│   │   │   ├── activity_model.dart
-│   │   │   ├── participant_model.dart
-│   │   │   ├── task_model.dart
-│   │   │   └── submission_model.dart
-│   │   ├── repositories/
-│   │   │   └── activity_repository.dart
-│   │   ├── services/
-│   │   │   └── session_service.dart
-│   │   └── utils/
-│   │       └── constants.dart
-│   └── features/
-│       ├── welcome/screens/
-│       │   └── welcome_screen.dart
-│       ├── join/screens/
-│       │   ├── join_activity_screen.dart
-│       │   └── setup_profile_screen.dart
-│       ├── facilitator/screens/
-│       │   ├── dashboard_screen.dart
-│       │   ├── create_activity_screen.dart
-│       │   ├── checkpoint_map_screen.dart
-│       │   └── approval_queue_screen.dart
-│       ├── gameplay/screens/
-│       │   ├── map_navigation_screen.dart
-│       │   └── checkpoint_screen.dart
-│       ├── tasks/screens/
-│       │   ├── task_list_screen.dart
-│       │   └── photo_task_screen.dart
-│       └── leaderboard/screens/
-│           └── leaderboard_screen.dart
-├── supabase/
-│   ├── migrations/
-│   │   ├── 20250101000000_initial_schema.sql
-│   │   └── 20250101000001_storage_setup.sql
-│   └── functions/
-│       ├── approve-submission/
-│       └── reject-submission/
-├── pubspec.yaml
+│   │   └── constants/          # Supabase config, app constants
+│   ├── features/
+│   │   ├── facilitator/
+│   │   │   └── screens/
+│   │   │       ├── facilitator_auth_screen.dart
+│   │   │       ├── facilitator_dashboard.dart
+│   │   │       ├── checkpoint_setup_screen.dart
+│   │   │       ├── task_management_screen.dart
+│   │   │       ├── lobby_screen.dart
+│   │   │       └── facilitator_leaderboard_screen.dart
+│   │   ├── participant/
+│   │   │   └── screens/
+│   │   │       ├── participant_join_screen.dart
+│   │   │       ├── waiting_lobby_screen.dart
+│   │   │       ├── team_reveal_screen.dart
+│   │   │       ├── game_map_screen.dart
+│   │   │       ├── checkpoint_tasks_screen.dart
+│   │   │       ├── quiz_task_screen.dart
+│   │   │       ├── photo_task_screen.dart
+│   │   │       ├── qr_task_screen.dart
+│   │   │       ├── leaderboard_screen.dart
+│   │   │       └── results_screen.dart
+│   │   └── shared/
+│   │       └── models/         # ActivityModel, CheckpointModel, TaskModel
+│   ├── services/
+│   │   └── supabase_service.dart
+│   └── main.dart
+├── android/                    # Android platform config
+├── ios/                        # iOS platform config
+├── screenshots/                # App screenshots
 └── README.md
 ```
 
 ---
 
-## 🔄 Application Flow
+## 🎯 How It Works
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  FACILITATOR                     │
-│                                                  │
-│  Create Activity → Set Checkpoints → Add Tasks   │
-│       │                                          │
-│       ▼                                          │
-│  Share Join Code → Wait for Players              │
-│       │                                          │
-│       ▼                                          │
-│  Start Race → Auto-Group Teams → Monitor Live    │
-│       │                                          │
-│       ▼                                          │
-│  Review Submissions → Approve/Reject → End Race  │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    FACILITATOR FLOW                          │
+│                                                             │
+│  Create Activity → Setup Checkpoints → Add Tasks → Lobby   │
+│       │                                              │      │
+│       ▼                                              ▼      │
+│  Join Code Generated                    Start & Form Teams  │
+│                                              │              │
+│                                              ▼              │
+│                                      Monitor Game Live      │
+└─────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────┐
-│                  PARTICIPANT                     │
-│                                                  │
-│  Enter Join Code → Take Selfie → Wait in Lobby   │
-│       │                                          │
-│       ▼                                          │
-│  Team Reveal → Navigate to Checkpoints (GPS)     │
-│       │                                          │
-│       ▼                                          │
-│  Complete Tasks → Submit Answers/Photos          │
-│       │                                          │
-│       ▼                                          │
-│  Track Leaderboard → Finish Race                 │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    PARTICIPANT FLOW                          │
+│                                                             │
+│  Enter Join Code → Waiting Lobby → Team Reveal → Game Map  │
+│                                                      │      │
+│                                                      ▼      │
+│                              Navigate → Geofence Unlock     │
+│                                              │              │
+│                                              ▼              │
+│                                    Complete Tasks → Points  │
+│                                              │              │
+│                                              ▼              │
+│                                      Live Leaderboard       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Technical Highlights
+## 📊 Geofencing System
 
-- **Real-time GPS Geofencing**: Haversine formula calculates distance to checkpoints, automatically triggering task unlocks with haptic feedback
-- **Smart Grouping Algorithm**: Supabase Edge Function shuffles and distributes players into balanced teams with no player left solo
-- **Live Data Sync**: Supabase Realtime subscriptions push leaderboard updates instantly to all connected devices
-- **Dual Authentication**: Email/password for facilitators, anonymous code-based login for participants
-- **Row Level Security**: PostgreSQL RLS policies ensure data isolation between activities and teams
-- **Offline-Ready Architecture**: BLoC pattern with repository layer supports graceful offline handling
+HuntSphere uses **GPS-based geofencing** to verify participant location:
 
----
+- **Haversine Formula** — Calculates distance between player and checkpoint
+- **Default Radius** — 50 meters (customizable per checkpoint)
+- **Auto Detection** — GPS checks every 5 seconds
+- **Manual Check-in** — Backup button when within radius
+- **Visual Feedback** — Banner turns green when in range
 
-## 📄 License
-
-This project is open-sourced for educational purposes.
+```dart
+// Geofence check (simplified)
+double distance = haversine(playerLat, playerLng, checkpointLat, checkpointLng);
+if (distance <= checkpoint.radius) {
+    // Unlock checkpoint & show tasks!
+}
+```
 
 ---
 
 ## 👨‍💻 Author
 
-**Mohammad Ariq Haikal**
-- GitHub: [@Ariqdoangg](https://github.com/Ariqdoangg)
-- LinkedIn: [ariqhaikal](https://www.linkedin.com/in/ariqhaikal)
-- Email: 4riq.haika1@gmail.com
+**Ariq Haikal** — Final-year Software Engineering Student @ UPSI
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://linkedin.com/in/ariqhaikal)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Ariqdoangg)
 
 ---
 
 <div align="center">
-
-Built with ❤️ using Flutter, Supabase & Google Maps
-
-⭐ Star this repo if you find it useful!
-
+  <sub>Built with ❤️ for GPS-powered team building activities</sub>
 </div>
