@@ -31,7 +31,7 @@ A **GPS-powered digital explorace platform** that enables facilitators to create
     <td align="center"><b>Dashboard</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/facilitator_dashboard.jpg" width="300" /></td>
+    <td align="center"><img src="screenshots/facilitator_dashboard.jpeg" width="300" /></td>
   </tr>
 </table>
 
@@ -43,14 +43,14 @@ A **GPS-powered digital explorace platform** that enables facilitators to create
     <td align="center"><b>Waiting Lobby</b></td>
   </tr>
   <tr>
-    <td><img src="screenshots/participant_join.jpg" width="300" /></td>
-    <td><img src="screenshots/participant_lobby.jpg" width="300" /></td>
+    <td><img src="screenshots/participant_join.jpeg" width="300" /></td>
+    <td><img src="screenshots/participant_lobby.jpeg" width="300" /></td>
   </tr>
   <tr>
     <td align="center" colspan="2"><b>Game Map with GPS Tracking</b></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><img src="screenshots/game_map.jpg" width="300" /></td>
+    <td align="center" colspan="2"><img src="screenshots/game_map.jpeg" width="300" /></td>
   </tr>
 </table>
 
