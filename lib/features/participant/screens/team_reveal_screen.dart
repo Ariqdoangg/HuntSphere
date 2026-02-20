@@ -23,6 +23,7 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
 
   Map<String, dynamic>? _teamData;
   String? _activityId;
+  String? _teamId; // Store team ID separately for safety
   bool _isLoading = true;
 
   @override
@@ -55,6 +56,14 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
 
   Future<void> _loadTeamData() async {
     try {
+      debugPrint('🔍 Loading team data...');
+      debugPrint('👤 Participant ID: ${widget.participant.id}');
+      
+      // Check participant ID first
+      if (widget.participant.id == null || widget.participant.id!.isEmpty) {
+        throw Exception('Participant ID is missing');
+      }
+
       // Refresh participant to get team_id and activity_id
       final participantData = await Supabase.instance.client
           .from('participants')
@@ -62,17 +71,42 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
           .eq('id', widget.participant.id!)
           .single();
 
-      final teamId = participantData['team_id'];
-      _activityId = participantData['activity_id'];
+      debugPrint('📊 Participant data fetched: $participantData');
 
-      if (teamId == null) {
+      // Safely extract team_id (could be UUID, convert to String)
+      final rawTeamId = participantData['team_id'];
+      final teamId = rawTeamId?.toString();
+      
+      // Safely extract activity_id
+      final rawActivityId = participantData['activity_id'];
+      final activityId = rawActivityId?.toString();
+
+      debugPrint('🎯 Raw Team ID: $rawTeamId (type: ${rawTeamId.runtimeType})');
+      debugPrint('🎯 Raw Activity ID: $rawActivityId (type: ${rawActivityId.runtimeType})');
+      debugPrint('🎯 Converted Team ID: $teamId');
+      debugPrint('🎯 Converted Activity ID: $activityId');
+
+      // Use fallback to widget.participant.activityId if database fetch fails
+      _activityId = activityId ?? widget.participant.activityId;
+      _teamId = teamId;
+
+      debugPrint('✅ Final Team ID: $_teamId, Activity ID: $_activityId');
+
+      if (_teamId == null || _teamId!.isEmpty) {
         throw Exception('Not assigned to a team yet');
+      }
+
+      if (_activityId == null || _activityId!.isEmpty) {
+        throw Exception('Activity ID is missing');
       }
 
       // Get team info with members
       final teamInfo = await Supabase.instance.client
-          .rpc('get_team_info', params: {'p_team_id': teamId})
+          .rpc('get_team_info', params: {'p_team_id': _teamId})
           .single();
+
+      debugPrint('👥 Team info fetched: $teamInfo');
+      debugPrint('👥 Team info type: ${teamInfo.runtimeType}');
 
       setState(() {
         _teamData = teamInfo;
@@ -82,6 +116,7 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
       // Start reveal animation
       _animationController.forward();
     } catch (e) {
+      debugPrint('❌ Error loading team data: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,16 +127,69 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
   }
 
   void _startGame() {
-    if (_teamData == null || _activityId == null) return;
+    debugPrint('🎮 ====== STARTING GAME ======');
+    debugPrint('📊 Team data: $_teamData');
+    debugPrint('🎯 Activity ID: $_activityId');
+    debugPrint('🏷️ Team ID (stored): $_teamId');
+    debugPrint('👤 Participant ID: ${widget.participant.id}');
 
+    // === VALIDATION ===
+    
+    // 1. Check participant ID
+    final participantId = widget.participant.id;
+    if (participantId == null || participantId.isEmpty) {
+      debugPrint('❌ FAIL: Participant ID is null or empty!');
+      _showError('Participant ID is missing. Please rejoin the activity.');
+      return;
+    }
+
+    // 2. Check activity ID
+    final activityId = _activityId;
+    if (activityId == null || activityId.isEmpty) {
+      debugPrint('❌ FAIL: Activity ID is null or empty!');
+      _showError('Activity ID is missing. Please try again.');
+      return;
+    }
+
+    // 3. Check team ID (use stored _teamId, not from _teamData)
+    final teamId = _teamId;
+    if (teamId == null || teamId.isEmpty) {
+      debugPrint('❌ FAIL: Team ID is null or empty!');
+      _showError('Team ID is missing. Please try again.');
+      return;
+    }
+
+    // 4. Check team data exists (for display purposes)
+    if (_teamData == null) {
+      debugPrint('❌ FAIL: Team data is null!');
+      _showError('Team data is missing. Please try again.');
+      return;
+    }
+
+    debugPrint('✅ ====== ALL VALIDATIONS PASSED ======');
+    debugPrint('   ➡️ participantId: $participantId');
+    debugPrint('   ➡️ teamId: $teamId');
+    debugPrint('   ➡️ activityId: $activityId');
+
+    // Navigate to GameMapScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => GameMapScreen(
-          participantId: widget.participant.id!,
-          teamId: _teamData!['team_id'],
-          activityId: _activityId!,
+          participantId: participantId,
+          teamId: teamId,
+          activityId: activityId,
         ),
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
       ),
     );
   }
@@ -155,10 +243,18 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
       );
     }
 
-    final teamColor = Color(
-      int.parse(_teamData!['team_color'].substring(1), radix: 16) + 0xFF000000,
-    );
-    final members = _teamData!['members'] as List<dynamic>;
+    // Safely parse team color
+    Color teamColor;
+    try {
+      final colorString = _teamData!['team_color']?.toString() ?? '#00D9FF';
+      final colorHex = colorString.replaceFirst('#', '');
+      teamColor = Color(int.parse(colorHex, radix: 16) + 0xFF000000);
+    } catch (e) {
+      debugPrint('⚠️ Error parsing team color: $e');
+      teamColor = const Color(0xFF00D9FF); // Default cyan
+    }
+
+    final members = (_teamData!['members'] as List<dynamic>?) ?? [];
 
     return Scaffold(
       body: Container(
@@ -168,7 +264,7 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
             end: Alignment.bottomCenter,
             colors: [
               const Color(0xFF0A1628),
-              teamColor.withValues(alpha: 0.3),
+              teamColor.withOpacity(0.3),
             ],
           ),
         ),
@@ -197,14 +293,14 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: teamColor.withValues(alpha: 0.3),
+                    color: teamColor.withOpacity(0.3),
                     border: Border.all(
                       color: teamColor,
                       width: 4,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: teamColor.withValues(alpha: 0.5),
+                        color: teamColor.withOpacity(0.5),
                         blurRadius: 30,
                         spreadRadius: 5,
                       ),
@@ -213,12 +309,12 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
                   child: Column(
                     children: [
                       Text(
-                        _teamData!['team_emoji'],
+                        _teamData!['team_emoji']?.toString() ?? '🎯',
                         style: const TextStyle(fontSize: 80),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _teamData!['team_name'],
+                        _teamData!['team_name']?.toString() ?? 'Team',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -251,27 +347,37 @@ class _TeamRevealScreenState extends State<TeamRevealScreen>
               Expanded(
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: members.length,
-                    itemBuilder: (context, index) {
-                      final member = members[index];
-                      final isCurrentUser = member['id'] == widget.participant.id;
-                      
-                      return _TeammateCard(
-                        name: member['name'],
-                        selfieUrl: member['selfie_url'],
-                        isCurrentUser: isCurrentUser,
-                        teamColor: teamColor,
-                      );
-                    },
-                  ),
+                  child: members.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No teammates yet',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemCount: members.length,
+                          itemBuilder: (context, index) {
+                            final member = members[index] as Map<String, dynamic>? ?? {};
+                            final memberId = member['id']?.toString();
+                            final memberName = member['name']?.toString() ?? 'Unknown';
+                            final selfieUrl = member['selfie_url']?.toString();
+                            final isCurrentUser = memberId == widget.participant.id;
+                            
+                            return _TeammateCard(
+                              name: memberName,
+                              selfieUrl: selfieUrl,
+                              isCurrentUser: isCurrentUser,
+                              teamColor: teamColor,
+                            );
+                          },
+                        ),
                 ),
               ),
 
@@ -336,7 +442,7 @@ class _TeammateCard extends StatelessWidget {
         boxShadow: isCurrentUser
             ? [
                 BoxShadow(
-                  color: teamColor.withValues(alpha: 0.3),
+                  color: teamColor.withOpacity(0.3),
                   blurRadius: 15,
                   spreadRadius: 2,
                 ),
@@ -347,7 +453,7 @@ class _TeammateCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Selfie
-          if (selfieUrl != null)
+          if (selfieUrl != null && selfieUrl!.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(50),
               child: Image.network(
@@ -358,7 +464,7 @@ class _TeammateCard extends StatelessWidget {
                 errorBuilder: (context, error, stackTrace) {
                   return CircleAvatar(
                     radius: 40,
-                    backgroundColor: teamColor.withValues(alpha: 0.3),
+                    backgroundColor: teamColor.withOpacity(0.3),
                     child: Icon(
                       Icons.person,
                       size: 40,
@@ -371,7 +477,7 @@ class _TeammateCard extends StatelessWidget {
           else
             CircleAvatar(
               radius: 40,
-              backgroundColor: teamColor.withValues(alpha: 0.3),
+              backgroundColor: teamColor.withOpacity(0.3),
               child: Icon(
                 Icons.person,
                 size: 40,

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:huntsphere/core/theme/app_theme.dart';
 import 'package:huntsphere/features/shared/models/activity_model.dart';
 import 'package:huntsphere/features/shared/models/participant_model.dart';
 import 'waiting_lobby_screen.dart';
@@ -20,16 +21,45 @@ class SelfieCaptureScreen extends StatefulWidget {
   State<SelfieCaptureScreen> createState() => _SelfieCaptureScreenState();
 }
 
-class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
+class _SelfieCaptureScreenState extends State<SelfieCaptureScreen>
+    with SingleTickerProviderStateMixin {
   final ImagePicker _picker = ImagePicker();
   XFile? _capturedImage;
   Uint8List? _imageBytes;
   bool _isUploading = false;
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
+    );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _takePicture() async {
+    HapticFeedback.mediumImpact();
     try {
-      // On web, this will open file picker with camera option
-      // On mobile, this will directly open camera
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
         maxWidth: 1024,
@@ -43,13 +73,25 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
           _capturedImage = image;
           _imageBytes = bytes;
         });
+        HapticFeedback.heavyImpact();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error accessing camera: $e'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error accessing camera: $e')),
+              ],
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+            ),
+            margin: const EdgeInsets.all(AppTheme.spacingM),
           ),
         );
       }
@@ -57,6 +99,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   }
 
   Future<void> _retake() async {
+    HapticFeedback.lightImpact();
     setState(() {
       _capturedImage = null;
       _imageBytes = null;
@@ -66,22 +109,21 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   Future<void> _submitAndJoin() async {
     if (_capturedImage == null || _imageBytes == null) return;
 
+    HapticFeedback.mediumImpact();
     setState(() => _isUploading = true);
 
     try {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${widget.participantName}.jpg';
-      
-      // Upload to Supabase Storage
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${widget.participantName}.jpg';
+
       await Supabase.instance.client.storage
           .from('selfies')
           .uploadBinary(fileName, _imageBytes!);
 
-      // Get public URL
       final selfieUrl = Supabase.instance.client.storage
           .from('selfies')
           .getPublicUrl(fileName);
 
-      // Create participant record
       final participantData = await Supabase.instance.client
           .from('participants')
           .insert({
@@ -96,14 +138,32 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       final participant = ParticipantModel.fromJson(participantData);
 
       if (mounted) {
-        // Navigate to waiting lobby
+        HapticFeedback.heavyImpact();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => WaitingLobbyScreen(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                WaitingLobbyScreen(
               activity: widget.activity,
               participant: participant,
             ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.05, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 400),
           ),
         );
       }
@@ -111,8 +171,19 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error joining activity: $e'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error joining activity: $e')),
+              ],
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+            ),
+            margin: const EdgeInsets.all(AppTheme.spacingM),
           ),
         );
       }
@@ -125,11 +196,22 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+    return EliteScaffold(
       appBar: AppBar(
         title: const Text('Take Selfie'),
-        backgroundColor: const Color(0xFF0A1628),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundCard.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+            ),
+            child: const Icon(Icons.arrow_back, size: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: _capturedImage != null && _imageBytes != null
@@ -140,126 +222,165 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   }
 
   Widget _buildCaptureScreen() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF00D9FF).withValues(alpha: 0.2),
-                border: Border.all(
-                  color: const Color(0xFF00D9FF),
-                  width: 3,
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppTheme.spacingL),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated Camera Icon
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.accent.withValues(alpha: 0.3),
+                        AppTheme.primaryPurple.withValues(alpha: 0.2),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: 0.3),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.accent,
+                        width: 3,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      size: 60,
+                      color: AppTheme.accent,
+                    ),
+                  ),
                 ),
               ),
-              child: const Icon(
-                Icons.camera_alt,
-                size: 60,
-                color: Color(0xFF00D9FF),
-              ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: AppTheme.spacingXL),
 
-            // Title
-            const Text(
-              '📸 Take Your Selfie',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF00D9FF),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-
-            // Name Badge
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A2332),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF00D9FF).withValues(alpha: 0.3),
-                ),
-              ),
-              child: Text(
-                widget.participantName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF00D9FF),
+              // Title with Gradient
+              const GradientText(
+                text: 'Take Your Selfie',
+                style: TextStyle(
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                gradient: LinearGradient(
+                  colors: [AppTheme.accent, AppTheme.primaryPurple],
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
+              const SizedBox(height: AppTheme.spacingM),
 
-            // Instructions
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A2332),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF00D9FF).withValues(alpha: 0.3),
+              // Name Badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingL,
+                  vertical: AppTheme.spacingS,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.accent.withValues(alpha: 0.2),
+                      AppTheme.primaryPurple.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                  border: Border.all(
+                    color: AppTheme.accent.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.person_rounded,
+                      color: AppTheme.accent,
+                      size: 20,
+                    ),
+                    const SizedBox(width: AppTheme.spacingS),
+                    Text(
+                      widget.participantName,
+                      style: AppTheme.headingSmall.copyWith(
+                        color: AppTheme.accent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                children: [
-                  _InfoRow(
-                    icon: Icons.face,
-                    text: 'Show your face clearly',
-                  ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    icon: Icons.wb_sunny,
-                    text: 'Make sure you have good lighting',
-                  ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    icon: Icons.camera,
-                    text: 'Browser will ask for camera permission',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
+              const SizedBox(height: AppTheme.spacingXL),
 
-            // Capture Button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
+              // Instructions Card
+              EliteCard(
+                showBorder: true,
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      Icons.face_rounded,
+                      'Show your face clearly',
+                    ),
+                    const SizedBox(height: AppTheme.spacingM),
+                    _buildInfoRow(
+                      Icons.wb_sunny_rounded,
+                      'Ensure good lighting',
+                    ),
+                    const SizedBox(height: AppTheme.spacingM),
+                    _buildInfoRow(
+                      Icons.camera_rounded,
+                      'Browser will ask for camera permission',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingXL),
+
+              // Open Camera Button
+              EliteButton(
+                label: 'Open Camera',
+                icon: Icons.camera_alt_rounded,
                 onPressed: _takePicture,
-                icon: const Icon(Icons.camera_alt, size: 24),
-                label: const Text(
-                  'Open Camera',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00D9FF),
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 4,
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.accent.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(AppTheme.radiusS),
+          ),
+          child: Icon(icon, color: AppTheme.accent, size: 20),
+        ),
+        const SizedBox(width: AppTheme.spacingM),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 
@@ -269,16 +390,23 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         // Preview Image
         Expanded(
           child: Container(
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(AppTheme.spacingM),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTheme.radiusL),
               border: Border.all(
-                color: const Color(0xFF00D9FF).withValues(alpha: 0.3),
+                color: AppTheme.accent.withValues(alpha: 0.3),
                 width: 2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accent.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppTheme.radiusL - 2),
               child: Image.memory(
                 _imageBytes!,
                 fit: BoxFit.contain,
@@ -287,102 +415,84 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
           ),
         ),
 
-        // Status Message
+        // Success Message
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+          padding: const EdgeInsets.all(AppTheme.spacingM),
           decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.success.withValues(alpha: 0.2),
+                AppTheme.success.withValues(alpha: 0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
             border: Border.all(
-              color: Colors.green.withValues(alpha: 0.3),
+              color: AppTheme.success.withValues(alpha: 0.3),
             ),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 24),
-              SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.success,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
               Expanded(
-                child: Text(
-                  'Looking good! Confirm to join the activity',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Looking good!',
+                      style: AppTheme.bodyLarge.copyWith(
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Confirm to join the activity',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spacingM),
 
         // Action Buttons
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.spacingM),
           child: Row(
             children: [
               // Retake Button
               Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _isUploading ? null : _retake,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text(
-                      'Retake',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A2332),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(
-                        color: Color(0xFF00D9FF),
-                        width: 1,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
+                child: _buildOutlinedButton(
+                  label: 'Retake',
+                  icon: Icons.refresh_rounded,
+                  onPressed: _isUploading ? null : _retake,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppTheme.spacingM),
 
               // Confirm Button
               Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _isUploading ? null : _submitAndJoin,
-                    icon: _isUploading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                            ),
-                          )
-                        : const Icon(Icons.check),
-                    label: Text(
-                      _isUploading ? 'Joining...' : 'Confirm',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D9FF),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 4,
-                    ),
-                  ),
+                child: EliteButton(
+                  label: _isUploading ? 'Joining...' : 'Confirm',
+                  icon: _isUploading ? null : Icons.check_rounded,
+                  onPressed: _isUploading ? null : _submitAndJoin,
+                  isLoading: _isUploading,
                 ),
               ),
             ],
@@ -391,33 +501,32 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       ],
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _InfoRow({
-    required this.icon,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: const Color(0xFF00D9FF), size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white70,
-            ),
+  Widget _buildOutlinedButton({
+    required String label,
+    required IconData icon,
+    VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      height: 56,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
           ),
         ),
-      ],
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.accent,
+          side: const BorderSide(color: AppTheme.accent, width: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+        ),
+      ),
     );
   }
 }

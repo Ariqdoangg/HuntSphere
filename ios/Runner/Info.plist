@@ -2,11 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-<key>NSLocationWhenInUseUsageDescription</key>
+	<key>NSLocationWhenInUseUsageDescription</key>
     <string>HuntSphere needs your location to show nearby checkpoints and track your progress during activities.</string>
-    
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>HuntSphere needs your location to provide the best experience during outdoor activities.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>HuntSphere needs camera access to take selfies for team identification and to complete photo tasks.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>HuntSphere needs photo library access to upload photos for task submissions.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

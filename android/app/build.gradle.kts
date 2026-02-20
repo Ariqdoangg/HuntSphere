@@ -13,6 +13,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -32,13 +33,22 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // For production, create a keystore and configure signing:
+            // 1. Generate keystore: keytool -genkey -v -keystore huntsphere-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias huntsphere
+            // 2. Create key.properties file with: storePassword, keyPassword, keyAlias, storeFile
+            // 3. Uncomment and configure the signingConfig below
+            signingConfig = signingConfigs.getByName("debug") // Replace with release signing config for production
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
