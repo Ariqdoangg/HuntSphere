@@ -16,10 +16,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
+  int _remainingMessages = ChatbotService.dailyLimit;
 
   @override
   void initState() {
     super.initState();
+    _remainingMessages = _chatbot.remainingMessages;
     // Add welcome message
     _messages.add(ChatMessage(
       role: 'assistant',
@@ -59,6 +61,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(role: 'assistant', content: response));
+          _remainingMessages = _chatbot.remainingMessages;
           _isLoading = false;
         });
         _scrollToBottom();
@@ -113,6 +116,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   content: "Chat cleared! How can I help you?",
                 ));
                 _chatbot.clearHistory();
+                _remainingMessages = _chatbot.remainingMessages;
               });
             },
             tooltip: 'Clear chat',
@@ -121,6 +125,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ),
       body: Column(
         children: [
+          // Usage counter
+          _buildUsageBanner(),
+
           // Quick actions
           _buildQuickActions(),
 
@@ -141,6 +148,50 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
           // Input
           _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageBanner() {
+    final isExhausted = _remainingMessages <= 0;
+    final isLow = _remainingMessages <= 5 && !isExhausted;
+
+    Color bannerColor;
+    Color textColor;
+    IconData icon;
+    String label;
+
+    if (isExhausted) {
+      bannerColor = Colors.red.withValues(alpha: 0.15);
+      textColor = Colors.red[300]!;
+      icon = Icons.block;
+      label = 'Daily limit reached — resets tomorrow';
+    } else if (isLow) {
+      bannerColor = Colors.orange.withValues(alpha: 0.15);
+      textColor = Colors.orange[300]!;
+      icon = Icons.warning_amber_rounded;
+      label = '$_remainingMessages / ${ChatbotService.dailyLimit} messages left today';
+    } else {
+      bannerColor = Colors.transparent;
+      textColor = Colors.white38;
+      icon = Icons.chat_bubble_outline;
+      label = '$_remainingMessages / ${ChatbotService.dailyLimit} messages left today';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: bannerColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: textColor, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: textColor, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -270,6 +321,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   }
 
   Widget _buildInputArea() {
+    final isDisabled = _isLoading || _remainingMessages <= 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -288,9 +341,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             Expanded(
               child: TextField(
                 controller: _messageController,
-                style: const TextStyle(color: Colors.white),
+                enabled: !isDisabled,
+                style: TextStyle(
+                  color: isDisabled ? Colors.white38 : Colors.white,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Type your message...',
+                  hintText: _remainingMessages <= 0
+                      ? 'Daily limit reached — come back tomorrow'
+                      : 'Type your message...',
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: const Color(0xFF0A1628),
@@ -303,21 +361,27 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     vertical: 12,
                   ),
                 ),
-                onSubmitted: _sendMessage,
+                onSubmitted: isDisabled ? null : _sendMessage,
                 textInputAction: TextInputAction.send,
               ),
             ),
             const SizedBox(width: 12),
             Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
-                ),
+              decoration: BoxDecoration(
+                gradient: isDisabled
+                    ? null
+                    : const LinearGradient(
+                        colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                      ),
+                color: isDisabled ? const Color(0xFF2A3445) : null,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: _isLoading
+                icon: Icon(
+                  Icons.send,
+                  color: isDisabled ? Colors.white24 : Colors.white,
+                ),
+                onPressed: isDisabled
                     ? null
                     : () => _sendMessage(_messageController.text),
               ),

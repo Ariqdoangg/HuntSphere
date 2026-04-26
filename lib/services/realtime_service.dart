@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:huntsphere/core/utils/error_handler.dart';
 
 /// Event types for real-time updates
 enum RealtimeEventType { insert, update, delete }
@@ -101,7 +102,10 @@ class RealtimeService {
             _fetchAndEmitLeaderboard(activityId, controller);
           }
           if (error != null) {
-            debugPrint('RealtimeService: Subscription error: $error');
+            debugPrint('RealtimeService: Leaderboard subscription error: $error');
+            if (!controller.isClosed) {
+              controller.addError(Exception('Realtime subscription failed: $error'));
+            }
           }
         });
 
@@ -138,10 +142,10 @@ class RealtimeService {
       if (!controller.isClosed) {
         controller.add(entries);
       }
-    } catch (e) {
-      debugPrint('RealtimeService: Error fetching leaderboard: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching leaderboard', stackTrace: st);
       if (!controller.isClosed) {
-        controller.addError(e);
+        controller.addError(Exception(appError.message), st);
       }
     }
   }
@@ -205,8 +209,11 @@ class RealtimeService {
       if (!controller.isClosed) {
         controller.add(response);
       }
-    } catch (e) {
-      debugPrint('RealtimeService: Error fetching activity: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching activity status', stackTrace: st);
+      if (!controller.isClosed) {
+        controller.addError(Exception(appError.message), st);
+      }
     }
   }
 
@@ -266,8 +273,11 @@ class RealtimeService {
       if (!controller.isClosed) {
         controller.add((response as List).cast<Map<String, dynamic>>());
       }
-    } catch (e) {
-      debugPrint('RealtimeService: Error fetching teams: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching teams', stackTrace: st);
+      if (!controller.isClosed) {
+        controller.addError(Exception(appError.message), st);
+      }
     }
   }
 
@@ -327,8 +337,11 @@ class RealtimeService {
       if (!controller.isClosed) {
         controller.add((response as List).cast<Map<String, dynamic>>());
       }
-    } catch (e) {
-      debugPrint('RealtimeService: Error fetching participants: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching participants', stackTrace: st);
+      if (!controller.isClosed) {
+        controller.addError(Exception(appError.message), st);
+      }
     }
   }
 

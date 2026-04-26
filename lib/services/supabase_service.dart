@@ -1,4 +1,6 @@
-﻿import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:huntsphere/core/utils/error_handler.dart';
 import 'package:huntsphere/features/shared/models/activity_model.dart';
 import 'dart:math';
 import 'package:huntsphere/features/shared/models/checkpoint_model.dart';
@@ -60,8 +62,9 @@ class SupabaseService {
           .single();
 
       return ActivityModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to create activity: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'creating activity', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 
@@ -75,8 +78,9 @@ class SupabaseService {
           .single();
 
       return ActivityModel.fromJson(response);
-    } catch (e) {
-      print('Error fetching activity: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching activity', stackTrace: st);
+      debugPrint('SupabaseService.getActivity: ${appError.message}');
       return null;
     }
   }
@@ -90,10 +94,12 @@ class SupabaseService {
       await _client
           .from('activities')
           .update({'status': status}).eq('id', activityId);
-    } catch (e) {
-      throw Exception('Failed to update activity status: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'updating activity status', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
+
   // ============================================
   // CHECKPOINT METHODS
   // ============================================
@@ -108,8 +114,9 @@ class SupabaseService {
           .single();
 
       return CheckpointModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to create checkpoint: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'creating checkpoint', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 
@@ -124,16 +131,18 @@ class SupabaseService {
       return (response as List)
           .map((json) => CheckpointModel.fromJson(json))
           .toList();
-    } catch (e) {
-      throw Exception('Failed to fetch checkpoints: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching checkpoints', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 
   static Future<void> deleteCheckpoint(String checkpointId) async {
     try {
       await _client.from('checkpoints').delete().eq('id', checkpointId);
-    } catch (e) {
-      throw Exception('Failed to delete checkpoint: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'deleting checkpoint', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 
@@ -147,8 +156,9 @@ class SupabaseService {
           await _client.from('tasks').insert(task.toJson()).select().single();
 
       return TaskModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to create task: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'creating task', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 
@@ -162,8 +172,9 @@ class SupabaseService {
       return (response as List)
           .map((json) => TaskModel.fromJson(json))
           .toList();
-    } catch (e) {
-      throw Exception('Failed to fetch tasks: $e');
+    } catch (e, st) {
+      final appError = ErrorHandler.handle(e, context: 'fetching tasks', stackTrace: st);
+      throw Exception(appError.message);
     }
   }
 }

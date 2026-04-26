@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'cache_service.dart';
 
 /// Message model for chat
 class ChatMessage {
@@ -40,10 +41,51 @@ class ChatbotService {
   // API provider (groq or openai)
   String get _provider => dotenv.env['AI_PROVIDER'] ?? 'groq';
 
+  // Daily usage limit
+  static const int dailyLimit = 20;
+  static const String _countKey = 'chatbot_daily_count';
+  static const String _dateKey = 'chatbot_last_date';
+  int _todayCount = 0;
+
   // Conversation history
   final List<ChatMessage> _conversationHistory = [];
 
   List<ChatMessage> get conversationHistory => List.unmodifiable(_conversationHistory);
+
+  // ── Daily usage tracking ──────────────────────────────────────
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  void _syncUsage() {
+    final cache = CacheService();
+    final today = _todayKey();
+    final storedDate = cache.getSetting<String>(_dateKey) ?? '';
+    if (storedDate != today) {
+      _todayCount = 0;
+      cache.saveSetting(_dateKey, today);
+      cache.saveSetting(_countKey, 0);
+    } else {
+      _todayCount = cache.getSetting<int>(_countKey) ?? 0;
+    }
+  }
+
+  Future<void> _incrementUsage() async {
+    _todayCount++;
+    await CacheService().saveSetting(_countKey, _todayCount);
+  }
+
+  int get remainingMessages {
+    _syncUsage();
+    return dailyLimit - _todayCount;
+  }
+
+  bool get hasReachedLimit {
+    _syncUsage();
+    return _todayCount >= dailyLimit;
+  }
 
   // System prompt for HuntSphere context
   static const String _systemPrompt = '''
@@ -93,6 +135,11 @@ If asked about specific checkpoint locations or direct task answers, politely de
 
   /// Send a message and get AI response
   Future<String> sendMessage(String userMessage) async {
+    _syncUsage();
+    if (_todayCount >= dailyLimit) {
+      return 'You\'ve reached your daily limit of $dailyLimit messages. Your limit resets tomorrow. Thanks for using HuntBot! 🎯';
+    }
+
     if (_apiKey.isEmpty) {
       return 'API key not configured. Please add GROQ_API_KEY or OPENAI_API_KEY to your .env file.';
     }
@@ -103,13 +150,16 @@ If asked about specific checkpoint locations or direct task answers, politely de
     try {
       final response = await _callApi(userMessage);
 
+      // Only count successful API calls against the daily limit
+      await _incrementUsage();
+
       // Add assistant response to history
       _conversationHistory.add(ChatMessage(role: 'assistant', content: response));
 
       return response;
     } catch (e) {
-      debugPrint('Chatbot error: $e');
-      return 'Sorry, I encountered an error. Please try again later.';
+      debugPrint('ChatbotService.sendMessage unexpected error: $e');
+      return 'Something went wrong with HuntBot. Please try again.';
     }
   }
 
@@ -151,12 +201,32 @@ If asked about specific checkpoint locations or direct task answers, politely de
         final data = jsonDecode(response.body);
         return data['choices'][0]['message']['content'] ?? 'No response';
       } else {
-        debugPrint('API Error: ${response.statusCode} - ${response.body}');
-        return 'API Error: ${response.statusCode}. Please check your API key.';
+        debugPrint('ChatbotService API error [${response.statusCode}]: ${response.body}');
+        return _apiErrorMessage(response.statusCode);
       }
-    } catch (e) {
-      debugPrint('Network/Timeout error: $e');
-      return 'Network error. Please check your connection.';
+    } on Exception catch (e) {
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('timeout') || errorStr.contains('timed out')) {
+        debugPrint('ChatbotService: Request timed out');
+        return 'The request timed out. Please try again.';
+      }
+      debugPrint('ChatbotService: Network error: $e');
+      return 'Network error. Please check your connection and try again.';
+    }
+  }
+
+  String _apiErrorMessage(int statusCode) {
+    switch (statusCode) {
+      case 401:
+        return 'AI service is not configured correctly. Please contact support.';
+      case 429:
+        return 'Too many requests to the AI service. Please wait a moment and try again.';
+      case 500:
+      case 502:
+      case 503:
+        return 'The AI service is temporarily unavailable. Please try again later.';
+      default:
+        return 'The AI service returned an unexpected error (code $statusCode). Please try again.';
     }
   }
 

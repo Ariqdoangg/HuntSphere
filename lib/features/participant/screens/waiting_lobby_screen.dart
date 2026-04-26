@@ -5,7 +5,6 @@ import 'package:huntsphere/core/theme/app_theme.dart';
 import 'package:huntsphere/features/shared/models/activity_model.dart';
 import 'package:huntsphere/features/shared/models/participant_model.dart';
 import 'team_reveal_screen.dart';
-import '../../../core/widgets/huntsphere_watermark.dart';
 
 class WaitingLobbyScreen extends StatefulWidget {
   final ActivityModel activity;
@@ -225,9 +224,14 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
 
   @override
   Widget build(BuildContext context) {
-    return EliteScaffold(
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0E1A),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Waiting Lobby'),
+        title: const Text(
+          'Waiting Lobby',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -236,10 +240,11 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundCard.withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
-              child: const Icon(Icons.refresh, size: 20),
+              child: const Icon(Icons.refresh, size: 20, color: Colors.white70),
             ),
             onPressed: () {
               _loadParticipants();
@@ -252,36 +257,33 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
       ),
       body: Stack(
         children: [
-          SafeArea(
-            child: Column(
-              children: [
-                // Activity Info Card
-                _buildActivityHeader(),
-
-                // Participant Count
-                _buildParticipantCount(),
-
-                const SizedBox(height: AppTheme.spacingM),
-
-                // Status Message
-                _buildStatusMessage(),
-
-                const SizedBox(height: AppTheme.spacingM),
-
-                // Check Teams Button
-                _buildCheckTeamsButton(),
-
-                const SizedBox(height: AppTheme.spacingL),
-
-                // Participants Grid
-                Expanded(child: _buildParticipantsGrid()),
-              ],
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0A0E1A), Color(0xFF0D1B2A), Color(0xFF0A0E1A)],
+                ),
+              ),
             ),
           ),
-          // HuntSphere watermark for screenshots
-          const HuntSphereWatermark(
-            alignment: Alignment.topRight,
-            opacity: 0.6,
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildActivityHeader(),
+                  _buildParticipantCount(),
+                  const SizedBox(height: AppTheme.spacingM),
+                  _buildStatusMessage(),
+                  const SizedBox(height: AppTheme.spacingM),
+                  _buildCheckTeamsButton(),
+                  const SizedBox(height: AppTheme.spacingL),
+                  _buildParticipantsGrid(),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -289,130 +291,127 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
   }
 
   Widget _buildActivityHeader() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(AppTheme.spacingM),
-      child: EliteCard(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue.withValues(alpha: 0.15),
-            AppTheme.primaryPurple.withValues(alpha: 0.1),
-            AppTheme.backgroundCard,
-          ],
-        ),
-        child: Column(
-          children: [
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _pulseAnimation.value,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.warning.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.hourglass_empty_rounded,
-                      size: 40,
-                      color: AppTheme.warning,
-                    ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingS,
+      ),
+      child: Column(
+        children: [
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) => Transform.scale(
+              scale: _pulseAnimation.value,
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: AppTheme.spacingM),
-            Text(
-              widget.activity.name,
-              style: AppTheme.headingMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingM,
-                vertical: AppTheme.spacingS,
-              ),
-              decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                border: Border.all(
-                  color: AppTheme.accent.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(
+                  Icons.hourglass_empty_rounded,
+                  size: 36,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            widget.activity.name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(1.5),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B2A),
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound - 1.5),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.vpn_key_rounded,
-                    color: AppTheme.accent,
-                    size: 16,
+                  const Icon(Icons.vpn_key_rounded, color: Color(0xFF4A90E2), size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'CODE',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.5,
+                    ),
                   ),
-                  const SizedBox(width: AppTheme.spacingS),
+                  const SizedBox(width: 8),
                   Text(
                     widget.activity.joinCode,
-                    style: AppTheme.labelLarge.copyWith(
-                      color: AppTheme.accent,
+                    style: const TextStyle(
+                      color: Color(0xFF4A90E2),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 3,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildParticipantCount() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-      child: EliteCard(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.people_rounded,
-                size: 32,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacingL),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_participantCount',
-                  style: AppTheme.displayMedium.copyWith(
-                    color: AppTheme.accent,
-                  ),
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1B2A),
+            borderRadius: BorderRadius.circular(AppTheme.radiusRound - 1.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.people_rounded, size: 20, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                '$_participantCount Participants',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-                Text(
-                  'Participants',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -420,37 +419,32 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
 
   Widget _buildStatusMessage() {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.success.withValues(alpha: 0.15),
-            AppTheme.success.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        color: AppTheme.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
         border: Border.all(
           color: AppTheme.success.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          // Pulsing dot
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {
               return Container(
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
                   color: AppTheme.success,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.success
-                          .withValues(alpha: _pulseAnimation.value * 0.5),
-                      blurRadius: 8,
+                          .withValues(alpha: _pulseAnimation.value * 0.6),
+                      blurRadius: 6,
                       spreadRadius: 2 * _pulseAnimation.value,
                     ),
                   ],
@@ -459,25 +453,23 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
             },
           ),
           const SizedBox(width: AppTheme.spacingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Live • Listening for game start',
-                  style: AppTheme.labelLarge.copyWith(
-                    color: AppTheme.success,
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Live • Waiting for game start',
+                style: TextStyle(
+                  color: AppTheme.success,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'You will be automatically redirected when the game starts',
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                "You'll be redirected automatically",
+                style: TextStyle(color: Colors.white54, fontSize: 11),
+              ),
+            ],
           ),
         ],
       ),
@@ -487,174 +479,235 @@ class _WaitingLobbyScreenState extends State<WaitingLobbyScreen>
   Widget _buildCheckTeamsButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-      child: EliteButton(
-        label: _isCheckingTeams ? 'Checking...' : 'Check if Teams Formed',
-        icon: Icons.check_circle_rounded,
-        onPressed: _isCheckingTeams ? null : _checkTeamAssignment,
-        isLoading: _isCheckingTeams,
+      child: GestureDetector(
+        onTap: _isCheckingTeams ? null : _checkTeamAssignment,
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            gradient: _isCheckingTeams
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                  ),
+            color: _isCheckingTeams ? Colors.white12 : null,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: _isCheckingTeams
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white70,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Check if Teams Formed',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildParticipantsGrid() {
     if (_participants.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppTheme.accent),
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 600 ? 4 : (constraints.maxWidth > 400 ? 3 : 2);
-        return GridView.builder(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: _participants.length,
-      itemBuilder: (context, index) {
-        final participant = _participants[index];
-        final isCurrentUser = participant.id == widget.participant.id;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'PARTICIPANTS',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                ),
+              ),
+              Text(
+                '$_participantCount joined',
+                style: const TextStyle(fontSize: 12, color: Colors.white38),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = (constraints.maxWidth - 24) / 3;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: _participants.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final participant = entry.value;
+                  final isCurrentUser = participant.id == widget.participant.id;
 
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 300 + (index * 50)),
-          curve: Curves.easeOutBack,
-          builder: (context, value, child) {
-            // Clamp value to ensure it's always between 0.0 and 1.0
-            final clampedValue = value.clamp(0.0, 1.0);
-            return Transform.scale(
-              scale: clampedValue,
-              child: Opacity(opacity: clampedValue, child: child),
-            );
-          },
-          child: EliteCard(
-            padding: const EdgeInsets.all(AppTheme.spacingS),
-            showBorder: true,
-            gradient: isCurrentUser
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.2),
-                      AppTheme.primaryPurple.withValues(alpha: 0.1),
-                    ],
-                  )
-                : null,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Selfie
-                if (participant.selfieUrl != null)
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: isCurrentUser
-                          ? Border.all(color: AppTheme.accent, width: 2)
-                          : null,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                  final Widget avatar = participant.selfieUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(26),
+                          child: CachedNetworkImage(
+                            imageUrl: participant.selfieUrl!,
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 52,
+                              height: 52,
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                _buildSmallAvatar(isCurrentUser, size: 52),
+                          ),
+                        )
+                      : _buildSmallAvatar(isCurrentUser, size: 52);
+
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: Duration(milliseconds: 200 + (index * 30)),
+                    curve: Curves.easeOutBack,
+                    builder: (context, value, child) {
+                      final clampedValue = value.clamp(0.0, 1.0);
+                      return Transform.scale(
+                        scale: clampedValue,
+                        child: Opacity(opacity: clampedValue, child: child),
+                      );
+                    },
+                    child: Container(
+                      width: itemWidth,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isCurrentUser
+                            ? const Color(0xFF4A90E2).withValues(alpha: 0.15)
+                            : Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCurrentUser
+                              ? const Color(0xFF4A90E2).withValues(alpha: 0.5)
+                              : Colors.white12,
                         ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(40),
-                      child: CachedNetworkImage(
-                        imageUrl: participant.selfieUrl!,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          width: 60,
-                          height: 60,
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
-                          child: const Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          avatar,
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              participant.name,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) {
-                          return _buildDefaultAvatar(isCurrentUser);
-                        },
+                          if (isCurrentUser) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'YOU',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  letterSpacing: 1,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  )
-                else
-                  _buildDefaultAvatar(isCurrentUser),
-                const SizedBox(height: AppTheme.spacingS),
-
-                // Name
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    participant.name,
-                    style: AppTheme.bodySmall.copyWith(
-                      fontWeight:
-                          isCurrentUser ? FontWeight.bold : FontWeight.w500,
-                      color:
-                          isCurrentUser ? AppTheme.accent : AppTheme.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-
-                // "You" Badge
-                if (isCurrentUser) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingS,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                    ),
-                    child: Text(
-                      'YOU',
-                      style: AppTheme.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                  );
+                }).toList(),
+              );
+            },
           ),
-        );
-      },
+          const SizedBox(height: AppTheme.spacingM),
+        ],
+      ),
     );
-      },
+  }
+
+  Widget _buildSmallAvatar(bool isCurrentUser, {double size = 44}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+        ),
+        shape: BoxShape.circle,
+        border: isCurrentUser
+            ? Border.all(color: AppTheme.accent, width: 2)
+            : null,
+      ),
+      child: Icon(Icons.person_rounded, size: size * 0.5, color: Colors.white),
     );
   }
 
   Widget _buildDefaultAvatar(bool isCurrentUser) {
     return Container(
-      width: 60,
-      height: 60,
+      width: 72,
+      height: 72,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+        ),
         shape: BoxShape.circle,
-        border:
-            isCurrentUser ? Border.all(color: AppTheme.accent, width: 2) : null,
+        border: isCurrentUser
+            ? Border.all(color: AppTheme.accent, width: 2.5)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: const Icon(
-        Icons.person_rounded,
-        size: 30,
-        color: Colors.white,
-      ),
+      child: const Icon(Icons.person_rounded, size: 34, color: Colors.white),
     );
   }
 }

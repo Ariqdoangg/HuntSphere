@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:huntsphere/core/theme/app_theme.dart';
 import 'package:huntsphere/features/facilitator/screens/facilitator_auth_screen.dart';
 import 'package:huntsphere/features/participant/screens/participant_join_screen.dart';
+
+const double _navbarHeight = 72.0;
+const double _sectionPaddingV = 96.0;
+const double _contentMaxWidth = 1120.0;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,329 +14,771 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
+class _HomeScreenState extends State<HomeScreen> {
+  final _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
+    _scrollController.addListener(_onScroll);
+  }
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _animationController.forward();
+  void _onScroll() {
+    final scrolled = _scrollController.offset > 40;
+    if (scrolled != _isScrolled) setState(() => _isScrolled = scrolled);
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0D1B2A),  // Deep navy
-              Color(0xFF1B263B),  // Dark blue
-              Color(0xFF0D1B2A),  // Deep navy
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
+      backgroundColor: AppTheme.backgroundMedium,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 768;
+          return Stack(
             children: [
-              const Spacer(flex: 2),
-              
-              // Logo with animation
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: _buildLogo(),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // App name
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: _buildAppName(),
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Tagline
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: _buildTagline(),
-              ),
-              
-              const Spacer(flex: 2),
-              
-              // Buttons
-              SlideTransition(
-                position: _slideAnimation,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildButtons(context),
-                ),
-              ),
-              
-              const Spacer(flex: 1),
-              
-              // Footer
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: _buildFooter(),
-              ),
-              
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLogo() {
-    return Container(
-      width: 140,
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-          BoxShadow(
-            color: const Color(0xFFE91E63).withValues(alpha: 0.2),
-            blurRadius: 40,
-            spreadRadius: 10,
-            offset: const Offset(10, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Image.asset(
-          'assets/images/logo.png',
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback if logo not found
-            return Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF4A90E2),
-                    Color(0xFF7B68EE),
-                    Color(0xFFE91E63),
+              SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  children: [
+                    const SizedBox(height: _navbarHeight),
+                    _buildHero(context, isDesktop),
+                    _buildFeatures(isDesktop),
+                    _buildHowItWorks(isDesktop),
+                    _buildStatsBanner(isDesktop),
+                    _buildFooter(),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(28),
               ),
-              child: const Center(
-                child: Text(
-                  'H',
-                  style: TextStyle(
-                    fontSize: 80,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildNavbar(context, isDesktop),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── NAVBAR ───────────────────────────────────────────────────────────────
+
+  Widget _buildNavbar(BuildContext context, bool isDesktop) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: _navbarHeight,
+      decoration: BoxDecoration(
+        color: _isScrolled
+            ? AppTheme.backgroundDark.withValues(alpha: 0.97)
+            : Colors.transparent,
+        border: _isScrolled
+            ? Border(
+                bottom: BorderSide(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+                ),
+              )
+            : null,
+        boxShadow: _isScrolled
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                // Logo + name
+                _buildLogoMark(size: 36),
+                const SizedBox(width: 12),
+                ShaderMask(
+                  shaderCallback: (bounds) =>
+                      AppTheme.accentGradient.createShader(bounds),
+                  child: const Text(
+                    'HuntSphere',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
+                const Spacer(),
+                if (isDesktop) ...[
+                  _buildNavLink('Features', onTap: () {}),
+                  const SizedBox(width: 32),
+                  _buildNavLink('How It Works', onTap: () {}),
+                  const SizedBox(width: 32),
+                ],
+                // Facilitator Login button
+                _buildOutlinedNavButton(
+                  label: isDesktop ? 'Facilitator Login' : 'Login',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FacilitatorAuthScreen(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavLink(String label, {required VoidCallback onTap}) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.textSecondary,
+        padding: EdgeInsets.zero,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Widget _buildOutlinedNavButton({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.primaryBlue,
+        side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.6)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  // ─── HERO ─────────────────────────────────────────────────────────────────
+
+  Widget _buildHero(BuildContext context, bool isDesktop) {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height - _navbarHeight,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0D1B2A),
+            Color(0xFF1B263B),
+            Color(0xFF0D1B2A),
+          ],
+          stops: [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative glow orbs
+          Positioned(
+            top: -100,
+            right: -80,
+            child: _buildGlowOrb(
+              AppTheme.primaryBlue.withValues(alpha: 0.12),
+              320,
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            left: -60,
+            child: _buildGlowOrb(
+              AppTheme.primaryPink.withValues(alpha: 0.08),
+              260,
+            ),
+          ),
+          // Content
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 24 : 20,
+                  vertical: _sectionPaddingV,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: AppTheme.primaryBlue,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'GPS-Powered Team Activities',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.primaryBlue,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    // Headline
+                    ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppTheme.accentGradient.createShader(bounds),
+                      blendMode: BlendMode.srcIn,
+                      child: Text(
+                        'Run Smarter\nTreasure Hunts',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isDesktop ? 68 : 42,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.1,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Subtext
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Text(
+                        'GPS-powered team activity platform for educators and facilitators. '
+                        'Create, run, and track treasure hunts in real time.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isDesktop ? 18 : 15,
+                          color: AppTheme.textSecondary,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    // CTA buttons
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildPrimaryButton(
+                          label: 'Get Started as Facilitator',
+                          icon: Icons.admin_panel_settings_outlined,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FacilitatorAuthScreen(),
+                            ),
+                          ),
+                        ),
+                        _buildSecondaryButton(
+                          label: 'Join Activity',
+                          icon: Icons.group_outlined,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ParticipantJoinScreen(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppName() {
-    return ShaderMask(
-      shaderCallback: (bounds) => const LinearGradient(
-        colors: [
-          Color(0xFF4A90E2),   // Blue
-          Color(0xFF7B68EE),   // Purple
-          Color(0xFFE91E63),   // Pink
+            ),
+          ),
         ],
-      ).createShader(bounds),
-      child: const Text(
-        'HuntSphere',
-        style: TextStyle(
-          fontSize: 42,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          letterSpacing: 1.5,
+      ),
+    );
+  }
+
+  Widget _buildGlowOrb(Color color, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
         ),
       ),
     );
   }
 
-  Widget _buildTagline() {
-    return const Text(
-      'Adventure Awaits',
-      style: TextStyle(
-        fontSize: 16,
-        color: Color(0xFF8892A6),
-        letterSpacing: 3,
-        fontWeight: FontWeight.w300,
-      ),
-    );
-  }
+  // ─── FEATURES ─────────────────────────────────────────────────────────────
 
-  Widget _buildButtons(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+  Widget _buildFeatures(bool isDesktop) {
+    final cards = [
+      _FeatureData(
+        icon: Icons.location_on_outlined,
+        color: AppTheme.primaryBlue,
+        title: 'GPS Tracking',
+        description: 'Real-time location monitoring for all teams on an interactive map.',
+      ),
+      _FeatureData(
+        icon: Icons.leaderboard_outlined,
+        color: AppTheme.primaryPurple,
+        title: 'Live Leaderboard',
+        description: 'Instant team rankings updated as checkpoints are completed.',
+      ),
+      _FeatureData(
+        icon: Icons.flash_on_outlined,
+        color: AppTheme.primaryPink,
+        title: 'Easy Setup',
+        description: 'Create and launch a full activity in minutes — no training needed.',
+      ),
+    ];
+
+    return _buildSection(
+      color: AppTheme.backgroundDark,
       child: Column(
         children: [
-          // Facilitator Button - Premium style
-          _buildPrimaryButton(
-            icon: Icons.admin_panel_settings_outlined,
-            label: 'Facilitator',
-            sublabel: 'Create & manage activities',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FacilitatorAuthScreen(),
-                ),
-              );
-            },
+          _buildSectionHeader(
+            badge: 'FEATURES',
+            title: 'Everything you need\nto run great activities',
+            isDesktop: isDesktop,
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Join Activity Button - Secondary style
-          _buildSecondaryButton(
-            icon: Icons.group_outlined,
-            label: 'Join Activity',
-            sublabel: 'Enter with activity code',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ParticipantJoinScreen(),
+          const SizedBox(height: 56),
+          isDesktop
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: cards
+                      .map((d) => Expanded(child: _buildFeatureCard(d)))
+                      .toList()
+                      .expand((w) => [w, const SizedBox(width: 24)])
+                      .toList()
+                    ..removeLast(),
+                )
+              : Column(
+                  children: cards
+                      .map((d) => _buildFeatureCard(d))
+                      .toList()
+                      .expand((w) => [w, const SizedBox(height: 16)])
+                      .toList()
+                    ..removeLast(),
                 ),
-              );
-            },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(_FeatureData data) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: data.color.withValues(alpha: 0.15),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: data.color.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: data.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(data.icon, color: data.color, size: 26),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            data.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            data.description,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── HOW IT WORKS ─────────────────────────────────────────────────────────
+
+  Widget _buildHowItWorks(bool isDesktop) {
+    final steps = [
+      _StepData(1, 'Create Activity', 'Set up checkpoints, tasks, and invite code in your dashboard.'),
+      _StepData(2, 'Teams Join via Code', 'Participants enter the activity code to join and form teams.'),
+      _StepData(3, 'Hunt Begins', 'Teams race to complete GPS checkpoints and climb the leaderboard.'),
+    ];
+
+    return _buildSection(
+      color: AppTheme.backgroundMedium,
+      child: Column(
+        children: [
+          _buildSectionHeader(
+            badge: 'HOW IT WORKS',
+            title: 'Up and running\nin three steps',
+            isDesktop: isDesktop,
+          ),
+          const SizedBox(height: 56),
+          isDesktop
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: steps
+                      .map((s) => Expanded(child: _buildStepCard(s, isDesktop)))
+                      .toList()
+                      .expand((w) => [w, _buildStepConnector()])
+                      .toList()
+                    ..removeLast(),
+                )
+              : Column(
+                  children: steps
+                      .map((s) => _buildStepCard(s, isDesktop))
+                      .toList()
+                      .expand((w) => [w, const SizedBox(height: 16)])
+                      .toList()
+                    ..removeLast(),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepConnector() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Icon(
+        Icons.arrow_forward,
+        color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+        size: 24,
+      ),
+    );
+  }
+
+  Widget _buildStepCard(_StepData data, bool isDesktop) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${data.step}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            data.title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            data.description,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── STATS BANNER ─────────────────────────────────────────────────────────
+
+  Widget _buildStatsBanner(bool isDesktop) {
+    final stats = [
+      _StatData('30+', 'Users Tested'),
+      _StatData('89%', 'GPS Accuracy'),
+      _StatData('4.6/5', 'Satisfaction'),
+    ];
+
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.primaryBlue, AppTheme.primaryPurple],
+        ),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: isDesktop ? 64 : 48,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: stats.map((s) => _buildStatItem(s, isDesktop)).toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(_StatData data, bool isDesktop) {
+    return Column(
+      children: [
+        Text(
+          data.value,
+          style: TextStyle(
+            fontSize: isDesktop ? 44 : 32,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -1,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          data.label,
+          style: TextStyle(
+            fontSize: isDesktop ? 15 : 12,
+            color: Colors.white.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── FOOTER ───────────────────────────────────────────────────────────────
+
+  Widget _buildFooter() {
+    return Container(
+      width: double.infinity,
+      color: AppTheme.backgroundDark,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildLogoMark(size: 28),
+              const SizedBox(width: 10),
+              const Text(
+                'HuntSphere',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '© 2025 HuntSphere · GPS Team Building Platform',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppTheme.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── SHARED HELPERS ───────────────────────────────────────────────────────
+
+  Widget _buildSection({required Color color, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      color: color,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: _sectionPaddingV,
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String badge,
+    required String title,
+    required bool isDesktop,
+  }) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryPurple.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: AppTheme.primaryPurple.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Text(
+            badge,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primaryPurple,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: isDesktop ? 40 : 28,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
+            height: 1.2,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoMark({required double size}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: AppTheme.accentGradient,
+        borderRadius: BorderRadius.circular(size * 0.22),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        'H',
+        style: TextStyle(
+          fontSize: size * 0.55,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+        ),
       ),
     );
   }
 
   Widget _buildPrimaryButton({
-    required IconData icon,
     required String label,
-    required String sublabel,
+    required IconData icon,
     required VoidCallback onTap,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4A90E2),
-                Color(0xFF7B68EE),
-              ],
+              colors: [AppTheme.primaryBlue, AppTheme.primaryPurple],
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF4A90E2).withValues(alpha: 0.4),
+                color: AppTheme.primaryBlue.withValues(alpha: 0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
-                child: Icon(icon, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sublabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white.withValues(alpha: 0.7),
-                size: 18,
               ),
             ],
           ),
@@ -341,65 +788,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildSecondaryButton({
-    required IconData icon,
     required String label,
-    required String sublabel,
+    required IconData icon,
     required VoidCallback onTap,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E3A5F).withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(16),
+            color: AppTheme.backgroundCard,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
-              width: 1.5,
+              color: AppTheme.primaryBlue.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+              Icon(icon, color: AppTheme.primaryBlue, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
                 ),
-                child: Icon(icon, color: const Color(0xFF4A90E2), size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sublabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8892A6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                color: Color(0xFF8892A6),
-                size: 18,
               ),
             ],
           ),
@@ -407,45 +825,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
+}
 
-  Widget _buildFooter() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildFooterIcon(Icons.location_on_outlined),
-            const SizedBox(width: 8),
-            _buildFooterIcon(Icons.groups_outlined),
-            const SizedBox(width: 8),
-            _buildFooterIcon(Icons.emoji_events_outlined),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'GPS Team Building Platform',
-          style: TextStyle(
-            fontSize: 12,
-            color: Color(0xFF5A6677),
-            letterSpacing: 1,
-          ),
-        ),
-      ],
-    );
-  }
+// ─── DATA CLASSES ─────────────────────────────────────────────────────────────
 
-  Widget _buildFooterIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F).withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(
-        icon,
-        color: const Color(0xFF4A90E2).withValues(alpha: 0.6),
-        size: 18,
-      ),
-    );
-  }
+class _FeatureData {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String description;
+  const _FeatureData({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.description,
+  });
+}
+
+class _StepData {
+  final int step;
+  final String title;
+  final String description;
+  const _StepData(this.step, this.title, this.description);
+}
+
+class _StatData {
+  final String value;
+  final String label;
+  const _StatData(this.value, this.label);
 }

@@ -6,6 +6,7 @@ class ActivityModel {
   final String status;
   final DateTime? startedAt;
   final DateTime? endedAt;
+  final String? createdBy;
   final DateTime createdAt;
 
   ActivityModel({
@@ -16,6 +17,7 @@ class ActivityModel {
     this.status = 'setup',
     this.startedAt,
     this.endedAt,
+    this.createdBy,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -31,6 +33,7 @@ class ActivityModel {
           : null,
       endedAt:
           json['ended_at'] != null ? DateTime.parse(json['ended_at']) : null,
+      createdBy: json['created_by'],
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -44,6 +47,7 @@ class ActivityModel {
       'status': status,
       'started_at': startedAt?.toIso8601String(),
       'ended_at': endedAt?.toIso8601String(),
+      if (createdBy != null) 'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -56,6 +60,7 @@ class ActivityModel {
     String? status,
     DateTime? startedAt,
     DateTime? endedAt,
+    String? createdBy,
   }) {
     return ActivityModel(
       id: id ?? this.id,
@@ -65,6 +70,7 @@ class ActivityModel {
       status: status ?? this.status,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
+      createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt,
     );
   }

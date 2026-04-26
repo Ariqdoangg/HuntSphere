@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:huntsphere/providers/leaderboard_provider.dart';
 import 'package:huntsphere/services/realtime_service.dart';
 import 'package:huntsphere/core/theme/app_theme.dart';
+import 'package:huntsphere/utils/animation_utils.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   final String activityId;
@@ -51,7 +55,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             const SizedBox(width: 10),
             GradientText(
               text: 'HuntSphere Leaderboard',
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -74,7 +78,29 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
       backgroundColor: const Color(0xFF0A1628),
       body: leaderboardAsync.when(
         data: (teams) => _buildContent(teams),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset(
+                'assets/animations/loading.json',
+                width: 120,
+                height: 120,
+                repeat: true,
+                animate: true,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading leaderboard...',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
         error: (error, stack) => _buildError(error.toString()),
       ),
     );
@@ -242,13 +268,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                 ],
               )
             : null,
-        color: isCurrentTeam ? null : const Color(0xFF1A2332),
-        borderRadius: BorderRadius.circular(16),
-        border: isCurrentTeam
-            ? Border.all(color: const Color(0xFF00D9FF), width: 2)
-            : isWinner
-                ? Border.all(color: Colors.amber, width: 2)
-                : null,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -256,7 +275,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
           children: [
             Row(
               children: [
-                // Rank
+                // Rank with Google Fonts
                 Container(
                   width: 50,
                   height: 50,
@@ -269,10 +288,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                         ? Icon(rankIcon, color: rankColor, size: 28)
                         : Text(
                             '#$rank',
-                            style: TextStyle(
-                              color: rankColor,
+                            style: GoogleFonts.poppins(
                               fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
+                              color: rankColor,
                             ),
                           ),
                   ),
@@ -294,10 +313,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                           Expanded(
                             child: Text(
                               team.teamName,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: GoogleFonts.poppins(
                                 fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
+                                color: isCurrentTeam ? Colors.white : Colors.white,
                               ),
                             ),
                           ),

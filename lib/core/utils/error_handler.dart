@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Centralized error handling for HuntSphere
-/// Provides consistent error messages and logging across the app
+/// Provides consistent error messages, logging, and retry logic across the app
 
 class AppError {
   final String message;
@@ -34,8 +34,8 @@ class ErrorHandler {
   ErrorHandler._();
 
   /// Converts any exception to a user-friendly AppError
-  static AppError handle(dynamic error, {String? context}) {
-    _logError(error, context);
+  static AppError handle(dynamic error, {String? context, StackTrace? stackTrace}) {
+    _logError(error, context, stackTrace);
 
     if (error is AuthException) {
       return _handleAuthError(error);
@@ -187,10 +187,14 @@ class ErrorHandler {
   static bool _isNetworkError(dynamic error) {
     final errorString = error.toString().toLowerCase();
     return errorString.contains('socketexception') ||
-        errorString.contains('network') ||
+        errorString.contains('clientexception') ||
         errorString.contains('connection refused') ||
         errorString.contains('no internet') ||
-        errorString.contains('unreachable');
+        errorString.contains('unreachable') ||
+        errorString.contains('failed host lookup') ||
+        errorString.contains('network is unreachable') ||
+        errorString.contains('handshake') ||
+        errorString.contains('connection closed before full header');
   }
 
   static bool _isTimeoutError(dynamic error) {
@@ -198,17 +202,52 @@ class ErrorHandler {
     return errorString.contains('timeout') || errorString.contains('timed out');
   }
 
-  static void _logError(dynamic error, String? context) {
-    assert(() {
-      debugPrint('====== ERROR${context != null ? " [$context]" : ""} ======');
-      debugPrint('Type: ${error.runtimeType}');
-      debugPrint('Message: $error');
-      if (error is Error) {
-        debugPrint('Stack: ${error.stackTrace}');
+  static void _logError(dynamic error, String? context, [StackTrace? stackTrace]) {
+    // Log in all builds - assert wrapper was silently suppressing logs in release
+    final contextInfo = context != null ? ' [$context]' : '';
+    debugPrint('====== ERROR$contextInfo ======');
+    debugPrint('Type: ${error.runtimeType}');
+    debugPrint('Message: $error');
+    if (error is Error && error.stackTrace != null) {
+      debugPrint('Stack: ${error.stackTrace}');
+    } else if (stackTrace != null) {
+      debugPrint('Stack: $stackTrace');
+    }
+    debugPrint('====== END ERROR ======');
+  }
+
+  /// Retry an operation that may fail due to transient network/timeout errors.
+  /// Only retries on [ErrorType.network] and [ErrorType.timeout].
+  /// Does NOT retry on auth, validation, permission, or server errors.
+  static Future<T> withRetry<T>(
+    Future<T> Function() operation, {
+    int maxAttempts = 3,
+    Duration initialDelay = const Duration(seconds: 1),
+    String? context,
+  }) async {
+    int attempt = 0;
+    Duration delay = initialDelay;
+
+    while (true) {
+      attempt++;
+      try {
+        return await operation();
+      } catch (e) {
+        final appError = handle(e, context: context);
+        final isRetryable = appError.type == ErrorType.network ||
+            appError.type == ErrorType.timeout;
+
+        if (attempt >= maxAttempts || !isRetryable) rethrow;
+
+        debugPrint(
+          'ErrorHandler: Retrying${context != null ? " $context" : ""} '
+          '($attempt/$maxAttempts) after ${delay.inSeconds}s '
+          '[${appError.type.name}]',
+        );
+        await Future.delayed(delay);
+        delay = delay * 2; // exponential backoff: 1s → 2s → 4s
       }
-      debugPrint('====== END ERROR ======');
-      return true;
-    }());
+    }
   }
 
   /// Show error message using SnackBar

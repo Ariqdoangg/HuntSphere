@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/utils/error_handler.dart';
+import 'admin_management_screen.dart';
 import 'facilitator_dashboard.dart';
 
 class FacilitatorAuthScreen extends StatefulWidget {
@@ -157,19 +157,36 @@ class _FacilitatorAuthScreenState extends State<FacilitatorAuthScreen>
           password: _passwordController.text,
         );
 
-        // Check if facilitator is approved
-        final facilitator = await Supabase.instance.client
-            .from('facilitators')
-            .select('status, is_admin')
-            .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
-            .maybeSingle();
+        final userId = Supabase.instance.client.auth.currentUser!.id;
+
+        // Check if facilitator is approved. Some deployments still do not
+        // have the role column, so keep is_admin as a safe compatibility path.
+        Map<String, dynamic>? facilitator;
+        try {
+          facilitator = await Supabase.instance.client
+              .from('facilitators')
+              .select('status, is_admin, role')
+              .eq('user_id', userId)
+              .maybeSingle();
+        } on PostgrestException catch (e) {
+          final missingRoleColumn = e.message.toLowerCase().contains('role') ||
+              e.code == '42703' ||
+              e.code == 'PGRST204';
+          if (!missingRoleColumn) rethrow;
+
+          facilitator = await Supabase.instance.client
+              .from('facilitators')
+              .select('status, is_admin')
+              .eq('user_id', userId)
+              .maybeSingle();
+        }
 
         if (mounted) {
           if (facilitator == null) {
             // No facilitator record - create one as pending
             try {
               await Supabase.instance.client.from('facilitators').insert({
-                'user_id': Supabase.instance.client.auth.currentUser!.id,
+                'user_id': userId,
                 'name': _emailController.text.split('@').first,
                 'email': _emailController.text.trim(),
                 'organization': 'Pending',
@@ -185,10 +202,16 @@ class _FacilitatorAuthScreenState extends State<FacilitatorAuthScreen>
           } else if (facilitator['status'] == 'rejected') {
             _showRejectedDialog();
           } else {
-            // Approved - go to dashboard
+            final role = facilitator['role'] ??
+                (facilitator['is_admin'] == true ? 'super_admin' : 'admin');
+
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const FacilitatorDashboard()),
+              MaterialPageRoute(
+                builder: (context) => role == 'super_admin'
+                    ? const AdminManagementScreen()
+                    : const FacilitatorDashboard(),
+              ),
             );
           }
         }
@@ -229,7 +252,10 @@ class _FacilitatorAuthScreenState extends State<FacilitatorAuthScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingL),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 48,
+            ),
             child: AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
@@ -241,70 +267,78 @@ class _FacilitatorAuthScreenState extends State<FacilitatorAuthScreen>
                   ),
                 );
               },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Back button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios),
-                      color: AppTheme.textMuted,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1F35).withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 40,
+                          offset: const Offset(0, 16),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo
+                        const EliteLogo(size: 60),
+                        const SizedBox(height: 16),
+
+                        // Title
+                        const GradientText(
+                          text: 'HuntSphere',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Subtitle
+                        Text(
+                          'Facilitator Portal',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textMuted,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Tab switcher
+                        EliteTabSwitcher(
+                          tabs: const ['Login', 'Register'],
+                          selectedIndex: _isLogin ? 0 : 1,
+                          onTabSelected: (index) {
+                            setState(() => _isLogin = index == 0);
+                          },
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Form
+                        _buildForm(),
+                        const SizedBox(height: 24),
+
+                        // Submit button
+                        SizedBox(
+                          width: double.infinity,
+                          child: EliteButton(
+                            onPressed: _handleAuth,
+                            label: _isLogin ? 'Login' : 'Create Account',
+                            isLoading: _isLoading,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacingL),
-
-                  // Logo
-                  const EliteLogo(size: 100),
-                  const SizedBox(height: AppTheme.spacingL),
-
-                  // Title
-                  const GradientText(
-                    text: 'HuntSphere',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingXS),
-
-                  // Subtitle
-                  Text(
-                    'Facilitator Portal',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textMuted,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingXL),
-
-                  // Tab switcher
-                  EliteTabSwitcher(
-                    tabs: const ['Login', 'Register'],
-                    selectedIndex: _isLogin ? 0 : 1,
-                    onTabSelected: (index) {
-                      setState(() => _isLogin = index == 0);
-                    },
-                  ),
-                  const SizedBox(height: AppTheme.spacingXL),
-
-                  // Form
-                  _buildForm(),
-                  const SizedBox(height: AppTheme.spacingL),
-
-                  // Submit button
-                  SizedBox(
-                    width: double.infinity,
-                    child: EliteButton(
-                      onPressed: _handleAuth,
-                      label: _isLogin ? 'Login' : 'Create Account',
-                      isLoading: _isLoading,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingL),
-                ],
+                ),
               ),
             ),
           ),

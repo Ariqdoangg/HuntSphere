@@ -8,6 +8,8 @@ import 'package:huntsphere/services/realtime_service.dart';
 import 'package:huntsphere/services/cache_service.dart';
 import 'package:huntsphere/services/notification_service.dart';
 import 'package:huntsphere/services/report_service.dart';
+import 'package:huntsphere/services/lobby_service.dart';
+import 'package:huntsphere/services/game_map_service.dart';
 
 /// Supabase client provider
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
@@ -36,6 +38,18 @@ final activityServiceProvider = Provider<ActivityService>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final cache = ref.watch(cacheServiceProvider);
   return ActivityService(client, cache);
+});
+
+/// Lobby service provider
+final lobbyServiceProvider = Provider<LobbyService>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return LobbyService(client);
+});
+
+/// Game map service provider
+final gameMapServiceProvider = Provider<GameMapService>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return GameMapService(client);
 });
 
 /// Team service provider

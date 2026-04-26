@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:huntsphere/core/theme/app_theme.dart';
+import 'package:huntsphere/core/di/service_locator.dart';
 import 'package:huntsphere/features/shared/models/activity_model.dart';
 import 'package:huntsphere/features/shared/models/participant_model.dart';
 import 'package:huntsphere/services/audio_service.dart';
 import 'facilitator_leaderboard_screen.dart';
 
-class FacilitatorLobbyScreen extends StatefulWidget {
+class FacilitatorLobbyScreen extends ConsumerStatefulWidget {
   final ActivityModel activity;
 
   const FacilitatorLobbyScreen({
@@ -16,10 +18,12 @@ class FacilitatorLobbyScreen extends StatefulWidget {
   });
 
   @override
-  State<FacilitatorLobbyScreen> createState() => _FacilitatorLobbyScreenState();
+  ConsumerState<FacilitatorLobbyScreen> createState() =>
+      _FacilitatorLobbyScreenState();
 }
 
-class _FacilitatorLobbyScreenState extends State<FacilitatorLobbyScreen>
+class _FacilitatorLobbyScreenState
+    extends ConsumerState<FacilitatorLobbyScreen>
     with SingleTickerProviderStateMixin {
   List<ParticipantModel> _participants = [];
   RealtimeChannel? _channel;
@@ -45,21 +49,23 @@ class _FacilitatorLobbyScreenState extends State<FacilitatorLobbyScreen>
   }
 
   Future<void> _loadParticipants() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('participants')
-          .select()
-          .eq('activity_id', widget.activity.id!)
-          .order('joined_at', ascending: true);
+    final lobbyService = ref.read(lobbyServiceProvider);
+    final result =
+        await lobbyService.getParticipantsForActivity(widget.activity.id!);
 
+    if (result.isSuccess) {
       setState(() {
-        _participants = (response as List)
-            .map((json) => ParticipantModel.fromJson(json))
-            .toList();
+        _participants = result.data!;
         _expectedTeams = (_participants.length / 4).ceil();
       });
-    } catch (e) {
-      debugPrint('Error loading participants: $e');
+    } else {
+      debugPrint('Error loading participants: ${result.error?.message}');
+      if (mounted) {
+        _showSnackBar(
+          result.error?.message ?? 'Failed to load participants',
+          isError: true,
+        );
+      }
     }
   }
 
@@ -92,98 +98,28 @@ class _FacilitatorLobbyScreenState extends State<FacilitatorLobbyScreen>
     HapticFeedback.mediumImpact();
 
     try {
-      final supabase = Supabase.instance.client;
+      final lobbyService = ref.read(lobbyServiceProvider);
+      final result = await lobbyService.startActivityAndFormTeams(
+        activity: widget.activity,
+        participants: _participants,
+      );
 
-      // 1. Update activity status to 'active' (use UTC to avoid timezone issues)
-      final now = DateTime.now().toUtc().toIso8601String();
-      await supabase
-          .from('activities')
-          .update({
-            'status': 'active',
-            'started_at': now,
-            'game_started_at': now,
-          })
-          .eq('id', widget.activity.id!);
-
-      // 2. Form teams - distribute participants evenly
-      final participantIds = _participants.map((p) => p.id!).toList();
-      participantIds.shuffle(); // Randomize
-
-      // UPDATED: Smart team calculation with optimal 3-4 person teams
-      final totalParticipants = participantIds.length;
-      int teamCount;
-
-      // Determine optimal team count based on participant count
-      // Goal: Maintain 3-4 person teams, avoid single-person teams
-      if (totalParticipants == 3) {
-        // Special case: 1 team (collaborative mode, no competition)
-        teamCount = 1;
-      } else if (totalParticipants >= 4 && totalParticipants <= 5) {
-        // 4-5 participants: 2 teams (2-2 or 3-2)
-        teamCount = 2;
-      } else if (totalParticipants >= 6 && totalParticipants <= 8) {
-        // 6-8 participants: 2 teams (3-3, 4-3, or 4-4)
-        teamCount = 2;
-      } else if (totalParticipants >= 9 && totalParticipants <= 12) {
-        // 9-12 participants: 3 teams (3-4 orang each)
-        teamCount = 3;
-      } else if (totalParticipants >= 13 && totalParticipants <= 16) {
-        // 13-16 participants: 4 teams (3-4 orang each)
-        teamCount = 4;
-      } else {
-        // 17+ participants: ~4 people per team
-        teamCount = (totalParticipants / 4).round();
-        // Ensure we don't create teams smaller than 3
-        if (totalParticipants / teamCount < 3) {
-          teamCount = (totalParticipants / 3).ceil();
+      if (!result.isSuccess) {
+        if (mounted) {
+          _showSnackBar(
+            result.error?.message ?? 'Failed to start activity',
+            isError: true,
+          );
         }
-      }
-
-      debugPrint('📊 Creating $teamCount teams for $totalParticipants participants');
-
-      // Create teams and assign participants with balanced distribution
-      int participantIndex = 0;
-
-      for (int i = 0; i < teamCount; i++) {
-        // Calculate how many participants for THIS team
-        final remainingParticipants = totalParticipants - participantIndex;
-        final remainingTeams = teamCount - i;
-
-        // Distribute remainder evenly (not all to last team!)
-        final teamSize = (remainingParticipants / remainingTeams).ceil();
-
-        // Create team
-        final teamResult = await supabase
-            .from('teams')
-            .insert({
-              'activity_id': widget.activity.id,
-              'team_number': i + 1,
-              'team_name': 'Team ${i + 1}',
-              'total_points': 0,
-            })
-            .select()
-            .single();
-
-        final teamId = teamResult['id'];
-
-        // Assign participants to this team (balanced distribution)
-        for (int j = 0; j < teamSize && participantIndex < totalParticipants; j++) {
-          await supabase
-              .from('participants')
-              .update({'team_id': teamId})
-              .eq('id', participantIds[participantIndex]);
-
-          participantIndex++;
-        }
-
-        debugPrint('✅ Team ${i + 1} assigned $teamSize participants');
+        return;
       }
 
       if (mounted) {
         // Play activity start sound and haptic feedback
         await AudioService().play('activity_start');
+        if (!mounted) return;
         HapticFeedback.heavyImpact();
-        _showSnackBar('Activity started! $teamCount teams formed');
+        _showSnackBar('Activity started! Teams formed');
 
         Navigator.pushReplacement(
           context,

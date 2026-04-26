@@ -170,36 +170,43 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
           child: SlideTransition(
             position: _slideAnimation,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.spacingL),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header with icon
-                    _buildHeader(),
-                    const SizedBox(height: AppTheme.spacingXL),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spacingL),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Header with icon
+                          _buildHeader(),
+                          const SizedBox(height: 16),
 
-                    // Activity Name Input
-                    _buildNameInput(),
-                    const SizedBox(height: AppTheme.spacingL),
+                          // Activity Name Input
+                          _buildNameInput(),
+                          const SizedBox(height: AppTheme.spacingL),
 
-                    // Duration Section
-                    _buildDurationSection(),
-                    const SizedBox(height: AppTheme.spacingL),
+                          // Duration Section
+                          _buildDurationSection(),
+                          const SizedBox(height: AppTheme.spacingL),
 
-                    // Info Banner
-                    const EliteInfoBanner(
-                      message:
-                          'A unique join code will be generated for participants to join your activity.',
-                      icon: Icons.info_outline,
+                          // Info Banner
+                          const EliteInfoBanner(
+                            message:
+                                'A unique join code will be generated for participants to join your activity.',
+                            icon: Icons.info_outline,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Create Button
+                          _buildCreateButton(),
+                          const SizedBox(height: AppTheme.spacingL),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingXL),
-
-                    // Create Button
-                    _buildCreateButton(),
-                    const SizedBox(height: AppTheme.spacingL),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -221,29 +228,26 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
             return Transform.scale(
               scale: value,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.2),
-                      AppTheme.primaryPurple.withValues(alpha: 0.1),
-                    ],
+                    colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
                   ),
                   borderRadius: BorderRadius.circular(AppTheme.radiusXL),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      spreadRadius: 0,
+                      color: Color(0xFF4A90E2).withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
                 child: const Icon(
                   Icons.calendar_month_rounded,
-                  size: 48,
-                  color: AppTheme.accent,
+                  size: 36,
+                  color: Colors.white,
                 ),
               ),
             );
@@ -254,13 +258,9 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
         // Title with gradient
         const GradientText(
           text: 'Setup Your HuntSphere Event',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-          ),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
           gradient: LinearGradient(
-            colors: [AppTheme.accent, AppTheme.primaryBlue],
+            colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
           ),
         ),
         const SizedBox(height: AppTheme.spacingS),
@@ -308,12 +308,14 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.warning.withValues(alpha: 0.2),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusS),
               ),
               child: const Icon(
                 Icons.timer_outlined,
-                color: AppTheme.warning,
+                color: Colors.white,
                 size: 18,
               ),
             ),
@@ -334,7 +336,6 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
             return _buildDurationChip(preset);
           }).toList(),
         ),
-        const SizedBox(height: AppTheme.spacingM),
 
         // Custom Duration Input
         AnimatedSize(
@@ -375,26 +376,16 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isSelected ? AppTheme.primaryGradient : null,
-          color: isSelected ? null : AppTheme.backgroundCard,
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : AppTheme.backgroundElevated.withValues(alpha: 0.5),
-            width: 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                )
               : null,
+          color: isSelected ? null : const Color(0xFF1A1F35),
+          borderRadius: BorderRadius.circular(24),
+          border: isSelected ? null : Border.all(color: Colors.white24),
         ),
         child: Column(
           children: [
@@ -403,7 +394,7 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppTheme.textPrimary,
+                color: isSelected ? Colors.white : Colors.white70,
               ),
             ),
             const SizedBox(height: 2),
@@ -413,7 +404,7 @@ class _ActivitySetupScreenState extends State<ActivitySetupScreen>
                 fontSize: 10,
                 color: isSelected
                     ? Colors.white.withValues(alpha: 0.8)
-                    : AppTheme.textMuted,
+                    : Colors.white38,
               ),
             ),
           ],

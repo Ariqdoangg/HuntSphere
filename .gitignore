@@ -44,13 +44,24 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Environment variables - NEVER commit these
+# Secrets - NEVER commit these
 .env
 .env.local
 .env.*.local
+android/local.properties
 
 # Keep the example file
 !.env.example
 
-.env
+# Claude Code
 .claude/settings.local.json
+
+node_modules/
+.claude/
+nul
+*.log
+*.tmp
+
+node_modules/
+.claude/
+nul

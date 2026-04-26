@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,8 +10,9 @@ import 'dart:math' show cos, sqrt, asin;
 import '../../shared/screens/chatbot_screen.dart';
 import '../../../services/audio_service.dart';
 import '../../../core/widgets/huntsphere_watermark.dart';
+import '../../../core/di/service_locator.dart';
 
-class GameMapScreen extends StatefulWidget {
+class GameMapScreen extends ConsumerStatefulWidget {
   final String participantId;
   final String teamId;
   final String activityId;
@@ -23,10 +25,10 @@ class GameMapScreen extends StatefulWidget {
   });
 
   @override
-  State<GameMapScreen> createState() => _GameMapScreenState();
+  ConsumerState<GameMapScreen> createState() => _GameMapScreenState();
 }
 
-class _GameMapScreenState extends State<GameMapScreen> {
+class _GameMapScreenState extends ConsumerState<GameMapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   Set<Marker> _markers = {};
@@ -44,7 +46,8 @@ class _GameMapScreenState extends State<GameMapScreen> {
   RealtimeChannel? _announcementChannel;
   Duration _remainingTime = Duration.zero;
   Map<String, dynamic>? _activityData;
-  List<Map<String, dynamic>> _announcements = [];
+  // Reserved for future in-memory announcements list if needed.
+  // Currently announcements are shown immediately via dialog.
 
   static const double GEOFENCE_RADIUS = 50.0;
 
@@ -84,11 +87,8 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   Future<void> _loadActivityData() async {
     try {
-      final response = await Supabase.instance.client
-          .from('activities')
-          .select()
-          .eq('id', widget.activityId)
-          .single();
+      final service = ref.read(gameMapServiceProvider);
+      final response = await service.getActivity(widget.activityId);
 
       setState(() {
         _activityData = response;
@@ -191,33 +191,24 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   /// Subscribe to activity status changes (to detect game end)
   void _subscribeToActivityStatus() {
-    _activityStatusChannel = Supabase.instance.client
-        .channel('game_activity_status_${widget.activityId}')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'activities',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id',
-            value: widget.activityId,
-          ),
-          callback: (payload) {
-            debugPrint('📢 Activity status update: ${payload.newRecord}');
-            final newRecord = payload.newRecord;
+    final service = ref.read(gameMapServiceProvider);
+    _activityStatusChannel = service.subscribeToActivityStatus(
+      activityId: widget.activityId,
+      callback: (payload) {
+        final newRecord = payload.newRecord;
+        debugPrint('📢 Activity status update: $newRecord');
 
-            // Reload full activity data including duration
-            _reloadActivityData(newRecord);
+        // Reload full activity data including duration
+        _reloadActivityData(newRecord);
 
-            final status = newRecord['status'];
+        final status = newRecord['status'];
 
-            // Check if game has ended
-            if (status == 'completed' || status == 'ended') {
-              _navigateToResults();
-            }
-          },
-        )
-        .subscribe();
+        // Check if game has ended
+        if (status == 'completed' || status == 'ended') {
+          _navigateToResults();
+        }
+      },
+    );
   }
 
   /// Reload activity data when updates are received
@@ -233,23 +224,15 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   /// Subscribe to announcements from facilitator
   void _subscribeToAnnouncements() {
-    _announcementChannel = Supabase.instance.client
-        .channel('announcements_${widget.activityId}')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'announcements',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'activity_id',
-            value: widget.activityId,
-          ),
-          callback: (payload) {
-            debugPrint('📢 New announcement: ${payload.newRecord}');
-            _showAnnouncement(payload.newRecord);
-          },
-        )
-        .subscribe();
+    final service = ref.read(gameMapServiceProvider);
+    _announcementChannel = service.subscribeToAnnouncements(
+      activityId: widget.activityId,
+      callback: (payload) {
+        final newRecord = payload.newRecord;
+        debugPrint('📢 New announcement: $newRecord');
+        _showAnnouncement(newRecord);
+      },
+    );
   }
 
   /// Show announcement dialog to participant
@@ -369,11 +352,8 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   Future<void> _loadTeamInfo() async {
     try {
-      final teamData = await Supabase.instance.client
-          .from('teams')
-          .select('team_name, emoji')
-          .eq('id', widget.teamId)
-          .single();
+      final service = ref.read(gameMapServiceProvider);
+      final teamData = await service.getTeamInfo(widget.teamId);
 
       setState(() {
         _teamName = teamData['team_name'];
@@ -386,13 +366,9 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   Future<void> _loadCheckpoints() async {
     try {
+      final service = ref.read(gameMapServiceProvider);
       debugPrint('📍 Loading checkpoints for activity: ${widget.activityId}');
-      
-      final response = await Supabase.instance.client
-          .from('checkpoints')
-          .select()
-          .eq('activity_id', widget.activityId)
-          .order('sequence_order', ascending: true);
+      final response = await service.getCheckpoints(widget.activityId);
 
       debugPrint('📍 Found ${response.length} checkpoints');
 
@@ -408,15 +384,12 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   Future<void> _loadArrivedCheckpoints() async {
     try {
-      final response = await Supabase.instance.client
-          .from('team_progress')
-          .select('checkpoint_id')
-          .eq('team_id', widget.teamId);
+      final service = ref.read(gameMapServiceProvider);
+      final arrivedIds =
+          await service.getArrivedCheckpointIds(widget.teamId);
 
       setState(() {
-        _arrivedCheckpoints = Set<String>.from(
-          response.map((r) => r['checkpoint_id'] as String),
-        );
+        _arrivedCheckpoints = arrivedIds;
       });
       
       debugPrint('✅ Already arrived at ${_arrivedCheckpoints.length} checkpoints');
@@ -790,11 +763,12 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
   Future<void> _updateParticipantLocation(Position position) async {
     try {
-      await Supabase.instance.client.from('participants').update({
-        'current_latitude': position.latitude,
-        'current_longitude': position.longitude,
-        'last_location_update': DateTime.now().toIso8601String(),
-      }).eq('id', widget.participantId);
+      final service = ref.read(gameMapServiceProvider);
+      await service.updateParticipantLocation(
+        participantId: widget.participantId,
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
     } catch (e) {
       debugPrint('⚠️ Error updating location in DB: $e');
     }
@@ -903,13 +877,13 @@ class _GameMapScreenState extends State<GameMapScreen> {
     try {
       debugPrint('🎯 Processing arrival at: $checkpointName');
 
+      final service = ref.read(gameMapServiceProvider);
+
       // Check if team has already completed this checkpoint
-      final existing = await Supabase.instance.client
-          .from('team_progress')
-          .select()
-          .eq('team_id', widget.teamId)
-          .eq('checkpoint_id', checkpointId)
-          .maybeSingle();
+      final existing = await service.getTeamCheckpointProgress(
+        teamId: widget.teamId,
+        checkpointId: checkpointId,
+      );
 
       if (existing != null) {
         debugPrint('⚠️ Team already completed this checkpoint');
@@ -930,45 +904,41 @@ class _GameMapScreenState extends State<GameMapScreen> {
           : null;
 
       // Check if this participant already recorded arrival
-      final myArrival = await Supabase.instance.client
-          .from('checkpoint_arrivals')
-          .select()
-          .eq('checkpoint_id', checkpointId)
-          .eq('participant_id', widget.participantId)
-          .maybeSingle();
+      final myArrival = await service.getParticipantCheckpointArrival(
+        participantId: widget.participantId,
+        checkpointId: checkpointId,
+      );
 
       if (myArrival == null) {
         // Record this participant's arrival
-        await Supabase.instance.client.from('checkpoint_arrivals').insert({
-          'checkpoint_id': checkpointId,
-          'participant_id': widget.participantId,
-          'team_id': widget.teamId,
-          'activity_id': widget.activityId,
-          'latitude': _currentPosition?.latitude,
-          'longitude': _currentPosition?.longitude,
-          'distance_from_checkpoint': distance,
-          'arrived_at': DateTime.now().toIso8601String(),
-        });
+        await service.insertCheckpointArrival(
+          checkpointId: checkpointId,
+          participantId: widget.participantId,
+          teamId: widget.teamId,
+          activityId: widget.activityId,
+          latitude: _currentPosition?.latitude,
+          longitude: _currentPosition?.longitude,
+          distanceFromCheckpoint: distance,
+        );
         debugPrint('✅ Recorded my arrival at $checkpointName');
       }
 
       // Check if ALL team members have arrived
-      final teamCheckResult = await Supabase.instance.client
-          .rpc('check_all_team_members_present', params: {
-        'p_checkpoint_id': checkpointId,
-        'p_team_id': widget.teamId,
-      }).select();
+      final teamCheckResult = await service.checkAllTeamMembersPresent(
+        checkpointId: checkpointId,
+        teamId: widget.teamId,
+      );
 
-      if (teamCheckResult.isEmpty) {
+      if (teamCheckResult == null) {
         debugPrint('⚠️ Could not verify team presence');
         return;
       }
 
-      final result = teamCheckResult.first;
-      final allPresent = result['all_present'] as bool;
-      final totalMembers = result['total_members'] as int;
-      final arrivedMembers = result['arrived_members'] as int;
-      final missingMembers = (result['missing_members'] as List?)?.cast<String>() ?? [];
+      final allPresent = teamCheckResult['all_present'] as bool;
+      final totalMembers = teamCheckResult['total_members'] as int;
+      final arrivedMembers = teamCheckResult['arrived_members'] as int;
+      final missingMembers =
+          (teamCheckResult['missing_members'] as List?)?.cast<String>() ?? [];
 
       debugPrint('👥 Team status: $arrivedMembers/$totalMembers members present');
 
@@ -989,11 +959,11 @@ class _GameMapScreenState extends State<GameMapScreen> {
 
       final success = await _executeWithRetry(
         operation: () async {
-          await Supabase.instance.client.rpc('complete_checkpoint_and_award_points', params: {
-            'p_team_id': widget.teamId,
-            'p_checkpoint_id': checkpointId,
-            'p_arrival_points': arrivalPoints,
-          });
+          await service.completeCheckpointAndAwardPoints(
+            teamId: widget.teamId,
+            checkpointId: checkpointId,
+            arrivalPoints: arrivalPoints,
+          );
         },
         operationName: 'award checkpoint points',
       );
@@ -1381,8 +1351,14 @@ class _GameMapScreenState extends State<GameMapScreen> {
   void dispose() {
     _locationTimer?.cancel();
     _countdownTimer?.cancel();
-    _activityStatusChannel?.unsubscribe();
-    _announcementChannel?.unsubscribe();
+    if (_activityStatusChannel != null) {
+      Supabase.instance.client.removeChannel(_activityStatusChannel!);
+      _activityStatusChannel = null;
+    }
+    if (_announcementChannel != null) {
+      Supabase.instance.client.removeChannel(_announcementChannel!);
+      _announcementChannel = null;
+    }
     // Don't dispose map controller on web - it causes issues
     // The GoogleMap widget will handle its own cleanup
     super.dispose();

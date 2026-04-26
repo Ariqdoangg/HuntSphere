@@ -238,79 +238,93 @@ class _CheckpointSetupScreenState extends State<CheckpointSetupScreen>
   }
 
   Widget _buildActivityHeader() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(AppTheme.spacingM),
-      child: EliteCard(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue.withValues(alpha: 0.15),
-            AppTheme.primaryPurple.withValues(alpha: 0.1),
-            AppTheme.backgroundCard,
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.location_on_rounded,
-                size: 32,
-                color: Colors.white,
-              ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 860),
+        child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.all(AppTheme.spacingM),
+          padding: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
             ),
-            const SizedBox(height: AppTheme.spacingM),
-            Text(
-              widget.activity.name,
-              style: AppTheme.headingMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingM,
-                vertical: AppTheme.spacingS,
-              ),
-              decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                border: Border.all(
-                  color: AppTheme.accent.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusL - 1.5),
+            child: Container(
+              color: const Color(0xFF1A1F35),
+              padding: const EdgeInsets.all(AppTheme.spacingL),
+              child: Column(
                 children: [
-                  const Icon(
-                    Icons.vpn_key_rounded,
-                    color: AppTheme.accent,
-                    size: 16,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                      ),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.location_on_rounded,
+                      size: 32,
+                      color: Colors.white,
+                    ),
                   ),
-                  const SizedBox(width: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingM),
                   Text(
-                    widget.activity.joinCode,
-                    style: AppTheme.labelLarge.copyWith(
-                      color: AppTheme.accent,
-                      letterSpacing: 3,
+                    widget.activity.name,
+                    style: AppTheme.headingMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppTheme.spacingS),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingM,
+                      vertical: AppTheme.spacingS,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00D9FF).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                      border: Border.all(
+                        color: const Color(0xFF00D9FF).withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.vpn_key_rounded,
+                          color: Color(0xFF00D9FF),
+                          size: 16,
+                        ),
+                        const SizedBox(width: AppTheme.spacingS),
+                        Text(
+                          widget.activity.joinCode,
+                          style: AppTheme.labelLarge.copyWith(
+                            color: const Color(0xFF00D9FF),
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -324,32 +338,41 @@ class _CheckpointSetupScreenState extends State<CheckpointSetupScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundCard,
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF4A90E2).withValues(alpha: 0.6),
+                    const Color(0xFF7B68EE).withValues(alpha: 0.6),
+                  ],
+                ),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    blurRadius: 30,
-                  ),
-                ],
               ),
-              child: Icon(
-                Icons.add_location_alt_outlined,
-                size: 64,
-                color: AppTheme.textMuted.withValues(alpha: 0.5),
+              child: ClipOval(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  color: const Color(0xFF1A1F35),
+                  child: const Icon(
+                    Icons.add_location_alt_rounded,
+                    size: 56,
+                    color: Color(0xFF4A90E2),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: AppTheme.spacingL),
-            Text(
-              'No checkpoints yet',
-              style: AppTheme.headingSmall.copyWith(color: AppTheme.textMuted),
+            const Text(
+              'No Checkpoints Yet',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: AppTheme.spacingS),
-            Text(
-              'Tap the button below to add your first checkpoint',
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textDisabled),
+            const Text(
+              'Add GPS checkpoints for participants to discover',
+              style: TextStyle(color: Colors.white54),
               textAlign: TextAlign.center,
             ),
           ],
@@ -380,7 +403,11 @@ class _CheckpointSetupScreenState extends State<CheckpointSetupScreen>
   Widget _buildFAB() {
     return Container(
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+        ),
         borderRadius: BorderRadius.circular(AppTheme.radiusL),
         boxShadow: AppTheme.primaryShadow,
       ),
@@ -416,9 +443,21 @@ class _CheckpointCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
-      child: EliteCard(
-        padding: EdgeInsets.zero,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(1),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF4A90E2).withValues(alpha: 0.4),
+            const Color(0xFF7B68EE).withValues(alpha: 0.4),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: EliteCard(
+          padding: EdgeInsets.zero,
         child: Column(
           children: [
             ListTile(
@@ -427,11 +466,15 @@ class _CheckpointCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                  ),
                   borderRadius: BorderRadius.circular(AppTheme.radiusM),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                      color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -560,6 +603,7 @@ class _CheckpointCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

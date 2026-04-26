@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'core/constants/supabase_constants.dart';
+import 'core/constants/supabase_constants_secure.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
 import 'services/connectivity_service.dart';
 import 'services/cache_service.dart';
 import 'services/notification_service.dart';
 import 'services/audio_service.dart';
-import 'features/facilitator/screens/facilitator_auth_screen.dart';
-import 'features/participant/screens/participant_join_screen.dart';
+import 'features/home_screen.dart';
 import 'features/participant/screens/checkpoint_tasks_screen.dart';
 import 'features/participant/screens/photo_task_screen.dart';
 import 'features/participant/screens/quiz_task_screen.dart';
@@ -33,6 +32,7 @@ void main() async {
 
   // Validate Supabase configuration
   SupabaseConstants.validateConfig();
+  SupabaseConstants.validateForDevelopment();
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -68,7 +68,7 @@ class HuntSphereApp extends StatelessWidget {
       title: 'HuntSphere',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: const AuthChecker(),
+      home: const HomeScreen(),
       onGenerateRoute: _onGenerateRoute,
     );
   }
@@ -272,149 +272,3 @@ class HuntSphereApp extends StatelessWidget {
   }
 }
 
-class AuthChecker extends StatefulWidget {
-  const AuthChecker({super.key});
-
-  @override
-  State<AuthChecker> createState() => _AuthCheckerState();
-}
-
-class _AuthCheckerState extends State<AuthChecker>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return EliteScaffold(
-      body: SafeArea(
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: child,
-                ),
-              );
-            },
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingXL,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: AppTheme.spacingXXL),
-
-                  // Elite Logo
-                  const EliteLogo(size: 120),
-                  const SizedBox(height: AppTheme.spacingL),
-
-                  // App Title with gradient
-                  const GradientText(
-                    text: 'HuntSphere',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingS),
-
-                  // Tagline
-                  Text(
-                    'GPS Treasure Hunt Platform',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textMuted,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingXXL * 1.5),
-
-                  // Facilitator Button
-                  SizedBox(
-                    width: 280,
-                    child: EliteButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FacilitatorAuthScreen(),
-                          ),
-                        );
-                      },
-                      icon: Icons.admin_panel_settings,
-                      label: 'Facilitator',
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingM),
-
-                  // Participant Button
-                  SizedBox(
-                    width: 280,
-                    child: EliteButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ParticipantJoinScreen(),
-                          ),
-                        );
-                      },
-                      icon: Icons.group,
-                      label: 'Join Activity',
-                      isOutlined: true,
-                    ),
-                  ),
-
-                  const SizedBox(height: AppTheme.spacingXXL),
-
-                  // Version info
-                  Text(
-                    'v1.0.0',
-                    style: AppTheme.caption.copyWith(
-                      color: AppTheme.textMuted.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingXL),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
