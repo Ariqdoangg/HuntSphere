@@ -38,3 +38,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: build/web/
           server-dir: /public_html/
+          protocol: ftps
+          port: 21
+          security: loose
