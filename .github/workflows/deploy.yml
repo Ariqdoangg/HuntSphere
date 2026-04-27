@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -21,6 +21,11 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Create missing assets
+        run: |
+          mkdir -p assets/animations
+          touch .env
 
       - name: Build web
         run: flutter build web --release
